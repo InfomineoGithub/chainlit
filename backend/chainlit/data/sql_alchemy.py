@@ -47,9 +47,8 @@ class SQLAlchemyDataLayer(BaseDataLayer):
         self._conninfo = conninfo
         self.user_thread_limit = user_thread_limit
         self.show_logger = show_logger
-        if connect_args is None:
-            connect_args = {}
-        if ssl_require:
+        connect_args = connect_args or {}
+        if ssl_require and not connect_args["ssl"]:
             # Create an SSL context to require an SSL connection
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
