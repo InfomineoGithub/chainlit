@@ -223,6 +223,17 @@ app.add_middleware(GZipMiddleware)
 router = APIRouter(prefix=config.run.root_path)
 
 
+@app.middleware("http")
+async def add_additional_response_headers(request: Request, call_next):
+    response = await call_next(request)
+
+    additional_headers = config.project.additional_response_headers or {}
+    for key, val in additional_headers.items():
+        response.headers[key] = str(val)
+
+    return response
+
+
 @router.get("/public/{filename:path}")
 async def serve_public_file(
     filename: str,
@@ -1389,9 +1400,9 @@ def validate_file_mime_type(file: UploadFile):
 
     accept = config.features.spontaneous_file_upload.accept
 
-    assert isinstance(accept, List) or isinstance(accept, dict), (
-        "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
-    )
+    assert isinstance(accept, List) or isinstance(
+        accept, dict
+    ), "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
 
     if isinstance(accept, List):
         for pattern in accept:
