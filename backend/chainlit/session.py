@@ -67,6 +67,8 @@ class BaseSession:
         environ: Optional[dict[str, Any]] = None,
         # Chat profile selected before the session was created
         chat_profile: Optional[str] = None,
+        # Client-side Session
+        client_side_session: Optional[Dict[str, Any]] = None,
     ):
         if thread_id:
             self.thread_id_to_resume = thread_id
@@ -84,6 +86,8 @@ class BaseSession:
         self.id = id
 
         self.chat_settings: Dict[str, Any] = {}
+
+        self.client_side_session: Optional[Dict[str, Any]] = client_side_session
 
     @property
     def files_dir(self):
@@ -228,6 +232,8 @@ class WebsocketSession(BaseSession):
         token: Optional[str] = None,
         # Chat profile selected before the session was created
         chat_profile: Optional[str] = None,
+        # Client-side Session
+        client_side_session: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(
             id=id,
@@ -238,6 +244,7 @@ class WebsocketSession(BaseSession):
             client_type=client_type,
             chat_profile=chat_profile,
             environ=environ,
+            client_side_session=client_side_session,
         )
 
         self.socket_id = socket_id
