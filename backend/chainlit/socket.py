@@ -10,7 +10,9 @@ from chainlit.auth import (
     get_current_user,
     get_token_from_cookies,
     require_login,
+    get_client_side_session_from_cookies,
 )
+from chainlit.auth.jwt import decode_client_side_session
 from chainlit.chat_context import chat_context
 from chainlit.config import config
 from chainlit.context import init_ws_context
@@ -94,6 +96,19 @@ def _get_token(environ: WSGIEnvironment, auth: dict) -> Optional[str]:
     return _get_token_from_cookie(environ)
 
 
+def _get_client_side_session(environ: WSGIEnvironment) -> Optional[Dict[str, Any]]:
+    if cookie_header := environ.get("HTTP_COOKIE", None):
+        encoded_client_side_session = get_client_side_session_from_cookies(
+            cookie_parser(cookie_header)
+        )
+        return (
+            decode_client_side_session(encoded_client_side_session)
+            if encoded_client_side_session
+            else {}
+        )
+    return None
+
+
 async def _authenticate_connection(
     environ,
     auth,
@@ -109,10 +124,12 @@ async def _authenticate_connection(
 @sio.on("connect")  # pyright: ignore [reportOptionalCall]
 async def connect(sid, environ, auth):
     user = token = None
+    client_side_session = None
 
     if require_login():
         try:
             user, token = await _authenticate_connection(environ, auth)
+            client_side_session = _get_client_side_session(environ)
         except Exception as e:
             logger.exception("Exception authenticating connection: %s", e)
 
@@ -153,6 +170,7 @@ async def connect(sid, environ, auth):
         chat_profile=chat_profile,
         thread_id=auth.get("threadId"),
         environ=environ,
+        client_side_session=client_side_session,
     )
 
     return True

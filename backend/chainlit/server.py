@@ -33,7 +33,15 @@ from starlette.middleware.cors import CORSMiddleware
 from typing_extensions import Annotated
 from watchfiles import awatch
 
-from chainlit.auth import create_jwt, decode_jwt, get_configuration, get_current_user
+from chainlit.auth import (
+    create_jwt,
+    decode_jwt,
+    get_configuration,
+    get_current_user,
+    update_client_side_session,
+    clear_client_side_session,
+    get_client_side_session,
+)
 from chainlit.auth.cookie import (
     clear_auth_cookie,
     clear_oauth_state_cookie,
@@ -525,6 +533,19 @@ async def logout(request: Request, response: Response):
     """Logout the user by calling the on_logout callback."""
     clear_auth_cookie(request, response)
 
+    client_side_session = get_client_side_session(request)
+    clear_client_side_session(response)
+
+    # Revoke the oauth provider tokens if possible
+    oauth_provider_id = client_side_session.get("oauth_provider_id")
+    oauth_refresh_token = client_side_session.get("oauth_refresh_token")
+    if (
+        oauth_provider_id
+        and oauth_refresh_token
+        and (oauth_provider := get_oauth_provider(oauth_provider_id))
+    ):
+        await oauth_provider.revoke_token(oauth_refresh_token)
+
     if config.code.on_logout:
         return await config.code.on_logout(request, response)
 
@@ -663,6 +684,13 @@ async def oauth_callback(
     response = await _authenticate_user(request, user, redirect_to_callback=True)
 
     clear_oauth_state_cookie(response)
+
+    if refresh_token := provider.refresh_token:
+        update_client_side_session(
+            request,
+            response,
+            {"oauth_provider_id": provider_id, "oauth_refresh_token": refresh_token},
+        )
 
     return response
 
