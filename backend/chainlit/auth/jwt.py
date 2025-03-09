@@ -40,9 +40,12 @@ def encode_client_side_session(client_side_session: Dict[str, Any]):
 
 
 def decode_jwt(token: str) -> User:
+    secret = get_jwt_secret()
+    assert secret
+
     dict = pyjwt.decode(
         token,
-        get_jwt_secret(),
+        secret,
         algorithms=["HS256"],
         options={"verify_signature": True},
     )
