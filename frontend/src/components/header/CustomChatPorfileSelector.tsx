@@ -86,10 +86,12 @@ export default function CustomChatProfileSelector({
                       <img
                         src={icon}
                         alt={profile.name}
-                        className="w-6 h-6 rounded-md object-cover"
+                        className="w-6 h-6 rounded-md object-cover shrink-0"
                       />
                     )}
-                    <span>{profile.name}</span>
+                    <span className="truncate max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis block">
+                      {profile.name}
+                    </span>
                   </div>
                 </SelectItem>
               </HoverCardTrigger>

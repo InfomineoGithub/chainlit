@@ -15,7 +15,7 @@ import { Pencil } from '@/components/icons/Pencil';
 import { Button } from '@/components/ui/button';
 import { Translator } from 'components/i18n';
 
-import { InlinedElements } from './Content/InlinedElements';
+// import { InlinedElements } from './Content/InlinedElements';
 
 interface Props {
   message: IStep;
@@ -58,7 +58,7 @@ export default function UserMessage({
 
   return (
     <div className="flex flex-col w-full gap-1">
-      <InlinedElements elements={inlineElements} className="items-end" />
+      {/* <InlinedElements elements={inlineElements} className="items-end" /> */}
 
       <div className="flex flex-row items-center gap-1 w-full group">
         {!isEditing && editable && (
