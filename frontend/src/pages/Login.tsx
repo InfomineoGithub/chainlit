@@ -106,12 +106,9 @@ export default function Login() {
       {!config?.headerAuth ? (
         <div className="relative hidden bg-muted lg:block overflow-hidden">
           <img
-            src={
-              config?.ui?.login_page_image ||
-              apiClient.buildEndpoint('/favicon')
-            }
+            src={apiClient.buildEndpoint('/login-logo')}
             alt="Image"
-            className={`absolute inset-0 h-full w-full object-cover ${
+            className={`absolute top-1/2 left-1/2 h-2/3 w-2/3 -translate-x-1/2 -translate-y-1/2 object-contain ${
               isDarkMode
                 ? config?.ui?.login_page_image_dark_filter ||
                   'brightness-[0.2] grayscale'
