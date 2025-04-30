@@ -103,9 +103,9 @@ export default function Login() {
       {!config?.headerAuth ? (
         <div className="relative hidden bg-muted lg:block">
           <img
-            src={apiClient.buildEndpoint('/favicon')}
+            src={apiClient.buildEndpoint('/login-logo')}
             alt="Image"
-            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            className="absolute top-1/2 left-1/2 h-2/3 w-2/3 -translate-x-1/2 -translate-y-1/2 object-contain dark:brightness-[0.2] dark:grayscale"
           />
         </div>
       ) : null}

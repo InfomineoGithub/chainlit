@@ -33,13 +33,13 @@ from typing_extensions import Annotated
 from watchfiles import awatch
 
 from chainlit.auth import (
+    clear_client_side_session,
     create_jwt,
     decode_jwt,
+    get_client_side_session,
     get_configuration,
     get_current_user,
     update_client_side_session,
-    clear_client_side_session,
-    get_client_side_session,
 )
 from chainlit.auth.cookie import (
     clear_auth_cookie,
@@ -1178,9 +1178,9 @@ def validate_file_mime_type(file: UploadFile):
 
     accept = config.features.spontaneous_file_upload.accept
 
-    assert isinstance(accept, List) or isinstance(
-        accept, dict
-    ), "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
+    assert isinstance(accept, List) or isinstance(accept, dict), (
+        "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
+    )
 
     if isinstance(accept, List):
         for pattern in accept:
@@ -1253,6 +1253,22 @@ async def get_file(
 async def get_favicon():
     """Get the favicon for the UI."""
     custom_favicon_path = os.path.join(APP_ROOT, "public", "favicon.*")
+    files = glob.glob(custom_favicon_path)
+
+    if files:
+        favicon_path = files[0]
+    else:
+        favicon_path = os.path.join(build_dir, "favicon.svg")
+
+    media_type, _ = mimetypes.guess_type(favicon_path)
+
+    return FileResponse(favicon_path, media_type=media_type)
+
+
+@router.get("/login-logo")
+async def get_login_logo():
+    """Get the favicon for the UI."""
+    custom_favicon_path = os.path.join(APP_ROOT, "public", "login-logo.*")
     files = glob.glob(custom_favicon_path)
 
     if files:
