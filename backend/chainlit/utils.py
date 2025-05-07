@@ -1,9 +1,9 @@
+import datetime
 import functools
 import importlib
-import traceback
 import inspect
 import os
-import datetime
+import traceback
 from asyncio import CancelledError
 from datetime import datetime, timezone
 from typing import Callable
@@ -61,7 +61,7 @@ def wrap_user_function(user_function: Callable, with_task=False) -> Callable:
                 return user_function(**params_values)
         except CancelledError:
             pass
-        except Exception as e:
+        except Exception:
             logger.error(traceback.format_exc())
             if with_task:
                 from chainlit.message import ErrorMessage
