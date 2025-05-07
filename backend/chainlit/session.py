@@ -63,6 +63,8 @@ class BaseSession:
         token: Optional[str],
         # User specific environment variables. Empty if no user environment variables are required.
         user_env: Optional[Dict[str, str]],
+        # WSGI environment variables for the connection request
+        environ: Optional[dict[str, Any]] = None,
         # Chat profile selected before the session was created
         chat_profile: Optional[str] = None,
         # Origin of the request
@@ -80,9 +82,8 @@ class BaseSession:
         self.token = token
         self.has_first_interaction = False
         self.user_env = user_env or {}
+        self.environ = environ or {}
         self.chat_profile = chat_profile
-        self.http_referer = http_referer
-        self.http_cookie = http_cookie
 
         self.files: Dict[str, FileDict] = {}
 
@@ -154,7 +155,6 @@ class BaseSession:
         user_session = user_sessions.get(self.id) or {}  # type: Dict
         user_session["chat_settings"] = self.chat_settings
         user_session["chat_profile"] = self.chat_profile
-        user_session["http_referer"] = self.http_referer
         user_session["client_type"] = self.client_type
         metadata = clean_metadata(user_session)
         return metadata
@@ -175,10 +175,8 @@ class HTTPSession(BaseSession):
         # Logged-in user token
         token: Optional[str] = None,
         user_env: Optional[Dict[str, str]] = None,
-        # Origin of the request
-        http_referer: Optional[str] = None,
-        # Cookie
-        http_cookie: Optional[str] = None,
+        # WSGI environment variables for the connection request
+        environ: Optional[dict[str, Any]] = None,
     ):
         super().__init__(
             id=id,
@@ -187,8 +185,7 @@ class HTTPSession(BaseSession):
             token=token,
             client_type=client_type,
             user_env=user_env,
-            http_referer=http_referer,
-            http_cookie=http_cookie,
+            environ=environ,
         )
 
     async def delete(self):
@@ -229,6 +226,8 @@ class WebsocketSession(BaseSession):
         # User specific environment variables. Empty if no user environment variables are required.
         user_env: Dict[str, str],
         client_type: ClientType,
+        # WSGI environment variables for the connection request
+        environ: Optional[dict[str, Any]] = None,
         # Thread id
         thread_id: Optional[str] = None,
         # Logged-in user information
@@ -257,6 +256,7 @@ class WebsocketSession(BaseSession):
             http_referer=http_referer,
             http_cookie=http_cookie,
             client_side_session=client_side_session,
+            environ=environ,
         )
 
         self.socket_id = socket_id
@@ -270,8 +270,6 @@ class WebsocketSession(BaseSession):
 
         ws_sessions_id[self.id] = self
         ws_sessions_sid[socket_id] = self
-
-        self.languages = languages
 
     def restore(self, new_socket_id: str):
         """Associate a new socket id to the session."""

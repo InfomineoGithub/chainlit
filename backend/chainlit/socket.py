@@ -158,8 +158,6 @@ async def connect(sid, environ, auth):
     user_env = load_user_env(user_env_string)
 
     client_type = auth.get("clientType")
-    http_referer = environ.get("HTTP_REFERER")
-    http_cookie = environ.get("HTTP_COOKIE")
     url_encoded_chat_profile = auth.get("chatProfile")
     chat_profile = (
         unquote(url_encoded_chat_profile) if url_encoded_chat_profile else None
@@ -180,6 +178,7 @@ async def connect(sid, environ, auth):
         http_referer=http_referer,
         http_cookie=http_cookie,
         client_side_session=client_side_session,
+        environ=environ,
     )
 
     trace_event("connection_successful")
