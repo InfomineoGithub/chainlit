@@ -145,6 +145,10 @@ Technical release due to missed `frontend` and `copilot` folders in previous one
 - **[breaking]**: `http_referer`, `http_cookie` and `languages` are no longer directly available in the session object. Instead, `environ` is available containing all of those plus other HTTP headers
 - The scroll to the bottom animation is now smooth
 
+### Changed
+
+- **[breaking]**: `http_referer`, `http_cookie` and `languages` are no longer directly available in the session object. Instead, `environ` is available containing all of those plus other HTTP headers.
+
 ## [2.4.400] - 2025-03-29
 
 ### Added
