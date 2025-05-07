@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
 
+// import { useTheme } from '@/components/ThemeProvider';
 import { useQuery } from 'hooks/query';
 
 import { ChainlitContext, useAuth } from 'client-types/*';
@@ -18,6 +19,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const apiClient = useContext(ChainlitContext);
   const navigate = useNavigate();
+  // const { variant } = useTheme();
+  // const isDarkMode = variant === 'dark';
 
   const handleCookieAuth = (json: any): void => {
     if (json?.success != true) throw LoginError;
@@ -101,7 +104,7 @@ export default function Login() {
         </div>
       </div>
       {!config?.headerAuth ? (
-        <div className="relative hidden bg-muted lg:block">
+        <div className="relative hidden bg-muted lg:block overflow-hidden">
           <img
             src={apiClient.buildEndpoint('/login-logo')}
             alt="Image"

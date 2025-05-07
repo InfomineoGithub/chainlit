@@ -1,7 +1,6 @@
 import os
 
-from fastapi import Depends, HTTPException
-from fastapi import Request, Response
+from fastapi import Depends, HTTPException, Request, Response
 
 from chainlit.config import config
 from chainlit.data import get_data_layer
@@ -11,18 +10,18 @@ from chainlit.oauth_providers import get_configured_oauth_providers
 from .cookie import (
     OAuth2PasswordBearerWithCookie,
     clear_auth_cookie,
+    delete_client_side_session_cookie,
+    get_client_side_session_from_cookies,
     get_token_from_cookies,
     set_auth_cookie,
     set_client_side_session_cookie,
-    get_client_side_session_from_cookies,
-    delete_client_side_session_cookie,
 )
 from .jwt import (
     create_jwt,
-    decode_jwt,
-    get_jwt_secret,
-    encode_client_side_session,
     decode_client_side_session,
+    decode_jwt,
+    encode_client_side_session,
+    get_jwt_secret,
 )
 
 reuseable_oauth = OAuth2PasswordBearerWithCookie(tokenUrl="/login", auto_error=False)
@@ -57,6 +56,11 @@ def get_configuration():
             get_configured_oauth_providers() if is_oauth_enabled() else []
         ),
         "default_theme": config.ui.default_theme,
+        "ui": {
+            "login_page_image": config.ui.login_page_image,
+            "login_page_image_filter": config.ui.login_page_image_filter,
+            "login_page_image_dark_filter": config.ui.login_page_image_dark_filter,
+        },
     }
 
 
@@ -118,12 +122,12 @@ def clear_client_side_session(response: Response):
 
 __all__ = [
     "clear_auth_cookie",
+    "clear_client_side_session",
     "create_jwt",
+    "get_client_side_session",
     "get_configuration",
     "get_current_user",
     "get_token_from_cookies",
     "set_auth_cookie",
     "update_client_side_session",
-    "get_client_side_session",
-    "clear_client_side_session",
 ]
