@@ -46,7 +46,9 @@ else:
     # Pydantic needs to resolve forward annotations. Because all of these are used
     # within `typing.Callable`, alias to `Any` as Pydantic does not perform validation
     # of callable argument/return types anyway.
-    Request = Response = Action = Message = ChatProfile = InputAudioChunk = Starter = ThreadDict = User = Feedback = Any  # fmt: off
+    Request = Response = Action = Message = ChatProfile = InputAudioChunk = Starter = (
+        ThreadDict
+    ) = User = Feedback = Any  # fmt: off
 
 BACKEND_ROOT = os.path.dirname(__file__)
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(BACKEND_ROOT))
@@ -174,7 +176,6 @@ alert_style = "classic"
 # Custom login page image filter (Tailwind internal filters, no dark/light variants)
 # login_page_image_filter = "brightness-50 grayscale"
 # login_page_image_dark_filter = "contrast-200 blur-sm"
-
 
 # Specify a custom meta image url.
 # custom_meta_image_url = "https://chainlit-cloud.s3.eu-west-3.amazonaws.com/logo/chainlit_banner.png"
@@ -331,7 +332,6 @@ class UISettings(DataClassJsonMixin):
     login_page_image: Optional[str] = None
     login_page_image_filter: Optional[str] = None
     login_page_image_dark_filter: Optional[str] = None
-
     # Optional custom meta tag for image preview
     custom_meta_image_url: Optional[str] = None
     # Optional logo file url

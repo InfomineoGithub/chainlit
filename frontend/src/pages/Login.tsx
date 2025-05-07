@@ -5,6 +5,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
 import { useTheme } from '@/components/ThemeProvider';
 
+// import { useTheme } from '@/components/ThemeProvider';
 import { useQuery } from 'hooks/query';
 
 import { ChainlitContext, useAuth } from 'client-types/*';
