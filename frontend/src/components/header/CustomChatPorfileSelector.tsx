@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction, useContext, useEffect } from 'react';
 
 import { ChainlitContext, useConfig } from '@chainlit/react-client';
 
-import Markdown from '@/components/Markdown';
+import { Markdown } from '@/components/Markdown';
 import {
   HoverCard,
   HoverCardContent,
