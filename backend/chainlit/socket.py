@@ -156,7 +156,8 @@ async def connect(sid, environ, auth):
 
     user_env_string = auth.get("userEnv")
     user_env = load_user_env(user_env_string)
-
+    http_referer = environ.get("HTTP_REFERER")
+    http_cookie = environ.get("HTTP_COOKIE")
     client_type = auth.get("clientType")
     url_encoded_chat_profile = auth.get("chatProfile")
     chat_profile = (
