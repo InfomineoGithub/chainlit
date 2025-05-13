@@ -63,7 +63,7 @@ export default function CustomChatProfileSelector({
     >
       <SelectTrigger
         id="chat-profiles"
-        className="w-full border-none bg-transparent text-muted-foreground font-semibold text-lg hover:bg-accent"
+        className="w-full border-none bg-transparent text-muted-foreground font-semibold text-sm hover:bg-accent"
       >
         <SelectValue placeholder="Select profile" />
       </SelectTrigger>
