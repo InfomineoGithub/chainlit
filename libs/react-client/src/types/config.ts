@@ -11,6 +11,7 @@ export interface ChatProfile {
   name: string;
   markdown_description: string;
   starters?: IStarter[];
+  group?: string;
 }
 
 export interface IAudioConfig {

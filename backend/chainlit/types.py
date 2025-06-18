@@ -293,6 +293,7 @@ class ChatProfile(DataClassJsonMixin):
     icon: Optional[str] = None
     default: bool = False
     starters: Optional[List[Starter]] = None
+    group: Optional[str] = None
 
 
 FeedbackStrategy = Literal["BINARY"]
