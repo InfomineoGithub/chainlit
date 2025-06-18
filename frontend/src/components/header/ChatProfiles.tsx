@@ -142,6 +142,8 @@ export default function ChatProfiles({ navigate }: Props) {
         open={openDialog}
         handleClose={handleClose}
         handleConfirm={() => newChatProfile && handleConfirm(newChatProfile)}
+        selectedChatProfile={chatProfile}
+        setSelectedChatProfile={setChatProfile}
       />
     </div>
   );
