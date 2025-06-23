@@ -230,6 +230,11 @@ async def add_additional_response_headers(request: Request, call_next):
     response = await call_next(request)
 
     additional_headers = config.project.additional_response_headers or {}
+    if "/public" in request.url.path and config.project.public_assets_cache_control:
+        additional_headers = {
+            **additional_headers,
+            "Cache-Control": config.project.public_assets_cache_control,
+        }
     for key, val in additional_headers.items():
         response.headers[key] = str(val)
 

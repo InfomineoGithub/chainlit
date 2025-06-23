@@ -120,7 +120,7 @@ export default function CustomChatProfileSelector({
         </div>
         <ChevronDown className="h-4 w-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="start">
         <ScrollArea className="max-h-[72] rounded-md">
           {chatProfileMenu.map((item) =>
             'chatProfiles' in item ? (

@@ -54,11 +54,15 @@ def decode_jwt(token: str) -> User:
 
 
 def decode_client_side_session(encoded_client_side_session: str) -> Dict[str, Any]:
-    client_side_session = pyjwt.decode(
-        encoded_client_side_session,
-        get_jwt_secret(),
-        algorithms=["HS256"],
-        options={"verify_signature": True},
-    )
+    try:
+        client_side_session = pyjwt.decode(
+            encoded_client_side_session,
+            get_jwt_secret(),
+            algorithms=["HS256"],
+            options={"verify_signature": True},
+        )
+    except pyjwt.InvalidSignatureError:
+        return {}
+
     del client_side_session["exp"]
     return client_side_session
