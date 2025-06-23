@@ -411,6 +411,8 @@ class ProjectSettings(DataClassJsonMixin):
     cache: bool = False
     # Additional response headers to include
     additional_response_headers: Optional[dict] = None
+    # Cache control header for public assets
+    public_assets_cache_control: Optional[str] = None
 
 
 @dataclass()
