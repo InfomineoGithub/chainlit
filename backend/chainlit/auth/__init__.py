@@ -69,11 +69,7 @@ async def authenticate_user(token: str = Depends(reuseable_oauth)):
         user = decode_jwt(token)
     except Exception as e:
         raise HTTPException(
-            status_code=401,
-            detail="Invalid authentication token",
-            headers={
-                "Clear-Site-Data": '"cache", "cookies", "storage"'
-            },  # TODO: fixes a bug where the browser caches all responses, should be removed safely by August 1st, 2025 as the max-age of the cached responses is 1 month
+            status_code=401, detail="Invalid authentication token"
         ) from e
 
     if data_layer := get_data_layer():
