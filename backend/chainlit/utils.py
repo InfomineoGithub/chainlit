@@ -1,4 +1,3 @@
-import datetime
 import functools
 import importlib
 import inspect
@@ -180,7 +179,7 @@ def mount_chainlit(app: FastAPI, target: str, path="/chainlit"):
 
 def generate_helpdesk_message() -> str:
     HELPDESK_URL = "https://odoo.infomineo.com/web#menu_id=262&cids=18&action=379&active_id=51&model=helpdesk.ticket&view_type=form"
-    timestamp = datetime.datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
+    timestamp = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
     helpdesk_message = (
         f"Oops! Something went wrong.\n\n"
         f"Please report this issue to our support team by opening a ticket at:\n"
