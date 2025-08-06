@@ -2,7 +2,6 @@ import functools
 import importlib
 import inspect
 import os
-import traceback
 from asyncio import CancelledError
 from datetime import datetime, timezone
 from typing import Callable
@@ -60,17 +59,14 @@ def wrap_user_function(user_function: Callable, with_task=False) -> Callable:
                 return user_function(**params_values)
         except CancelledError:
             pass
-        except Exception:
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            logger.exception(e)
             if with_task:
                 from chainlit.message import ErrorMessage
 
                 await ErrorMessage(
-                    content=generate_helpdesk_message(),
-                    author="B.R.A.I.N",
+                    content=str(e) or e.__class__.__name__, author="Error"
                 ).send()
-            else:
-                await context.emitter.send_toast(generate_helpdesk_message(), "error")
         finally:
             if with_task:
                 await context.emitter.task_end()
@@ -175,18 +171,3 @@ def mount_chainlit(app: FastAPI, target: str, path="/chainlit"):
     chainlit_app.add_middleware(ChainlitMiddleware)
 
     app.mount(path, chainlit_app)
-
-
-def generate_helpdesk_message() -> str:
-    HELPDESK_URL = "https://odoo.infomineo.com/web#menu_id=262&cids=18&action=379&active_id=51&model=helpdesk.ticket&view_type=form"
-    timestamp = datetime.now().strftime("%B %d, %Y at %I:%M:%S %p")
-    helpdesk_message = (
-        f"Oops! Something went wrong.\n\n"
-        f"Please report this issue to our support team by opening a ticket at:\n"
-        f"{HELPDESK_URL}\n\n"
-        f"**To help us investigate, please include the following in your ticket:**\n"
-        f"- 📝 A brief description of what you were trying to do before the error occurred.\n"
-        f"- 🕒 The timestamp of the issue: **{timestamp}**.\n\n"
-        f"Thank you for your patience!"
-    )
-    return helpdesk_message
