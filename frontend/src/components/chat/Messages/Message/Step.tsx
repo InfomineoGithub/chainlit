@@ -28,6 +28,26 @@ export default function Step({
   const hasContent = step.input || step.output || step.steps?.length;
   const isError = step.isError;
   const stepName = step.name;
+  const stepType = step.type;
+
+  const displayStepUsageState = () =>
+    ['tool', 'embedding', 'retrieval'].includes(stepType);
+
+  const getStepDisplay = () => {
+    if (displayStepUsageState()) {
+      const usage_state = using ? (
+        <Translator path="chat.messages.status.using" />
+      ) : (
+        <Translator path="chat.messages.status.used" />
+      );
+      return (
+        <>
+          {usage_state} {stepName}
+        </>
+      );
+    }
+    return stepName;
+  };
 
   // If there's no content, just render the status without accordion
   if (!hasContent) {
@@ -42,15 +62,7 @@ export default function Step({
           )}
           id={`step-${stepName}`}
         >
-          {using ? (
-            <>
-              <Translator path="chat.messages.status.using" /> {stepName}
-            </>
-          ) : (
-            <>
-              <Translator path="chat.messages.status.used" /> {stepName}
-            </>
-          )}
+          {getStepDisplay()}
         </p>
       </div>
     );
@@ -74,15 +86,7 @@ export default function Step({
             )}
             id={`step-${stepName}`}
           >
-            {using ? (
-              <>
-                <Translator path="chat.messages.status.using" /> {stepName}
-              </>
-            ) : (
-              <>
-                <Translator path="chat.messages.status.used" /> {stepName}
-              </>
-            )}
+            {getStepDisplay()}
           </AccordionTrigger>
           <AccordionContent>
             <div className="flex-grow mt-4 ml-1 pl-4 border-l-2 border-primary">
