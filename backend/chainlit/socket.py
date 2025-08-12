@@ -21,7 +21,6 @@ from chainlit.logger import logger
 from chainlit.message import ErrorMessage, Message
 from chainlit.server import sio
 from chainlit.session import WebsocketSession
-from chainlit.telemetry import trace_event
 from chainlit.types import InputAudioChunk, InputAudioChunkPayload, MessagePayload
 from chainlit.user import PersistedUser, User
 from chainlit.user_session import user_sessions
@@ -35,7 +34,6 @@ def restore_existing_session(sid, session_id, emit_fn, emit_call_fn):
         session.restore(new_socket_id=sid)
         session.emit = emit_fn
         session.emit_call = emit_call_fn
-        trace_event("session_restored")
         return True
     return False
 
@@ -66,26 +64,23 @@ async def resume_thread(session: WebsocketSession):
         if chat_settings := metadata.get("chat_settings"):
             session.chat_settings = chat_settings
 
-        trace_event("thread_resumed")
-
         return thread
 
 
 def load_user_env(user_env):
+    if user_env:
+        user_env_dict = json.loads(user_env)
     # Check user env
     if config.project.user_env:
-        # Check if requested user environment variables are provided
-        if user_env:
-            user_env = json.loads(user_env)
-            for key in config.project.user_env:
-                if key not in user_env:
-                    trace_event("missing_user_env")
-                    raise ConnectionRefusedError(
-                        "Missing user environment variable: " + key
-                    )
-        else:
+        if not user_env_dict:
             raise ConnectionRefusedError("Missing user environment variables")
-    return user_env
+        # Check if requested user environment variables are provided
+        for key in config.project.user_env:
+            if key not in user_env_dict:
+                raise ConnectionRefusedError(
+                    "Missing user environment variable: " + key
+                )
+    return user_env_dict
 
 
 def _get_token_from_cookie(environ: WSGIEnvironment) -> Optional[str]:
@@ -175,14 +170,10 @@ async def connect(sid, environ, auth):
         token=token,
         chat_profile=chat_profile,
         thread_id=auth.get("threadId"),
-        languages=environ.get("HTTP_ACCEPT_LANGUAGE"),
-        http_referer=http_referer,
-        http_cookie=http_cookie,
-        client_side_session=client_side_session,
         environ=environ,
+        client_side_session=client_side_session,
     )
 
-    trace_event("connection_successful")
     return True
 
 
@@ -265,8 +256,6 @@ async def disconnect(sid):
 @sio.on("stop")  # pyright: ignore [reportOptionalCall]
 async def stop(sid):
     if session := WebsocketSession.get(sid):
-        trace_event("stop_task")
-
         init_ws_context(session)
         await Message(content="Task manually stopped.").send()
 

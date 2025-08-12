@@ -4,6 +4,126 @@ All notable changes to Chainlit will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.6.8] - 2025-08-08
+
+### Other
+
+- Reverted PR with newline preservation in messages due to incorrect rendering in child components like lists
+
+## [2.6.7] - 2025-08-07
+
+### Fixed
+- Formatting when pasting HTML code and newlines in received messages
+
+## [2.6.6] - 2025-08-05
+
+### Added
+- Add support for emoji reaction on message received in Slack
+- Add Greek translation
+- Copy both plain text and rich text to clipboard, if available (rich text pasting to editors like Word)
+- Rename `CHAINLIT_COOKIE_PATH` to `CHAINLIT_AUTH_COOKIE_PATH` and now espect CHAINLIT_ROOT_PATH
+- Add language parameter to Copilot widget configuration
+
+### Fixed
+- Prevent HTML code in user message to be rendered as HTML instead of displaying as code
+- Properly parse `user_env` when `config.project.user_env` is empty
+
+## [2.6.5] - 2025-08-02
+
+### Fixed
+- Properly escape HTML on paste
+- Enable gzip compression for frontend
+- Address security vulnerabilities in dependencies by upgrading them to the closest safe versions
+- CI e2e tests and pnpm cache issues
+
+## [2.6.4] - 2025-08-01
+
+### Added
+- Add streamable HTTP MCP support
+- Improve e2e test stability and performance
+- Add configuration for expanded copilot mode
+- Add French translation
+
+### Fixed
+- Fix inputs/outputs for langchain callbacks
+- Fix blinking indicator for in-progress steps
+- Avoid unnecessary logo fetching when supplied in config.toml
+
+### Other
+- Bump dependencies
+
+## [2.6.3] - 2025-07-25
+
+### Added
+- Ability to send empty commands
+- Wider element view in copilot and improved styling
+- Support signed urls for elements using dynamoDB persistence
+- Support additional connection arguments in SQLAlchemy data layer
+- Added `CHAINLIT_COOKIE_PATH` environment variable to set the cookie path
+
+### Fixed
+- Message inputs formatting
+- Language pattern to allow `tzm-Latn-DZ`
+- Properly encode parentheses in markdown links
+- Fix chainlit data layer metadata upserts
+- Improve database connection handling
+- Fixed cookie path 
+- Improve lanchain callbacks
+
+### Other
+- Improve robustness of E2E tests
+- Removed watermark "Built with Chainlit"
+
+## [2.6.2] - 2025-07-16
+
+Technical release due to missed `frontend` and `copilot` folders in previous one.
+
+## [2.6.1] - 2025-07-15
+
+### Added
+- New `on_feedback` callback
+- Relaxed restriction on number of starters (now more than 4 can be displayed)
+
+### Fixed
+- Command persistence when `"button": True` is missing from command definition
+- `openai` and `mistralai` sub-modules fail due to incorrect `timestamp_utc` import
+- Temporarily reverted fix caused the following issues with Chainlit data layer:
+  - `null value in column "metadata" of relation "Thread"`
+  - `syntax error at or near ";"`
+- Google Cloud Storage private bucket support in Chainlit data layer
+- Portals (popups, dialogs, etc.) now render correctly inside Copilot’s shadow DOM
+
+### Other
+- Removed telemetry
+- Updated versions for Node.js, Poetry, and pnpm; added Corepack support
+
+## [2.6.0] - 2025-07-01
+
+### Added
+- Add commands to starters
+- Collapse command buttons to icons for small screens
+- Add timegated custom elements
+- Added ADC support for google cloud storage adapter
+- Added scope as env variable (`OAUTH_COGNITO_SCOPE`) to Cognito auth provider
+- Add MarkdownAlert Style Switcher. Control via `alert_style` in `config.toml`.
+- Allow custom s3 endpoint for the official data layer
+- Added container prop to dialog portal in Copilot shadow DOM
+- Bump dependencies
+- Add python 3.13 support
+
+### Fixed
+- Fix chat input double-spacing issue
+- Resolve python deprecation warning for utc_now() and logger.warn
+- Fixed an issue where the portal for the ChatProfiles selector was being rendered outside the Copilot shadow DOM
+- Add mime type to element emitter
+- Handle float/Decimal conversion for DynamoDB persistence
+- Fix cancel button in Chat settings
+- Only update thread metadata when not empty
+
+### Breaking
+- **LiteralAI** is being sunset and will be removed in one of the next releases. Please migrate to the official data layer instead.
+- Telemetry is now opt-in by default and will be removed in the next release.
+
 ## [2.5.5] - 2025-04-14
 
 ### Added
@@ -23,6 +143,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **[breaking]**: `http_referer`, `http_cookie` and `languages` are no longer directly available in the session object. Instead, `environ` is available containing all of those plus other HTTP headers
 - The scroll to the bottom animation is now smooth
+
+### Changed
+
+- **[breaking]**: `http_referer`, `http_cookie` and `languages` are no longer directly available in the session object. Instead, `environ` is available containing all of those plus other HTTP headers.
 
 ## [2.4.400] - 2025-03-29
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { LoginForm } from '@/components/LoginForm';
 import { Logo } from '@/components/Logo';
+import { useTheme } from '@/components/ThemeProvider';
 
 // import { useTheme } from '@/components/ThemeProvider';
 import { useQuery } from 'hooks/query';
@@ -19,8 +20,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const apiClient = useContext(ChainlitContext);
   const navigate = useNavigate();
-  // const { variant } = useTheme();
-  // const isDarkMode = variant === 'dark';
+  const { variant } = useTheme();
+  const isDarkMode = variant === 'dark';
 
   const handleCookieAuth = (json: any): void => {
     if (json?.success != true) throw LoginError;
@@ -108,7 +109,12 @@ export default function Login() {
           <img
             src={apiClient.buildEndpoint('/login-logo')}
             alt="Image"
-            className="absolute top-1/2 left-1/2 h-2/3 w-2/3 -translate-x-1/2 -translate-y-1/2 object-contain dark:brightness-[0.2] dark:grayscale"
+            className={`absolute top-1/2 left-1/2 h-2/3 w-2/3 -translate-x-1/2 -translate-y-1/2 object-contain ${
+              isDarkMode
+                ? config?.ui?.login_page_image_dark_filter ||
+                  'brightness-[0.2] grayscale'
+                : config?.ui?.login_page_image_filter || ''
+            }`}
           />
         </div>
       ) : null}

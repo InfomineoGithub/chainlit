@@ -38,7 +38,7 @@ class SQLAlchemyDataLayer(BaseDataLayer):
     def __init__(
         self,
         conninfo: str,
-        connect_args: Optional[Dict] = None,
+        connect_args: Optional[dict[str, Any]] = None,
         ssl_require: bool = False,
         storage_provider: Optional[BaseStorageClient] = None,
         user_thread_limit: Optional[int] = 1000,

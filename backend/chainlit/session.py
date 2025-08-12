@@ -67,10 +67,6 @@ class BaseSession:
         environ: Optional[dict[str, Any]] = None,
         # Chat profile selected before the session was created
         chat_profile: Optional[str] = None,
-        # Origin of the request
-        http_referer: Optional[str] = None,
-        # Cookie
-        http_cookie: Optional[str] = None,
         # Client-side Session
         client_side_session: Optional[Dict[str, Any]] = None,
     ):
@@ -236,12 +232,6 @@ class WebsocketSession(BaseSession):
         token: Optional[str] = None,
         # Chat profile selected before the session was created
         chat_profile: Optional[str] = None,
-        # Languages of the user's browser
-        languages: Optional[str] = None,
-        # Origin of the request
-        http_referer: Optional[str] = None,
-        # Cookie
-        http_cookie: Optional[str] = None,
         # Client-side Session
         client_side_session: Optional[Dict[str, Any]] = None,
     ):
@@ -253,10 +243,8 @@ class WebsocketSession(BaseSession):
             user_env=user_env,
             client_type=client_type,
             chat_profile=chat_profile,
-            http_referer=http_referer,
-            http_cookie=http_cookie,
-            client_side_session=client_side_session,
             environ=environ,
+            client_side_session=client_side_session,
         )
 
         self.socket_id = socket_id

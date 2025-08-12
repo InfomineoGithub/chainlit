@@ -67,9 +67,10 @@ export const NewChatDialog = ({
 
 interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   navigate?: (to: string) => void;
+  onConfirm?: () => void;
 }
 
-const NewChatButton = ({ navigate, ...buttonProps }: Props) => {
+const NewChatButton = ({ navigate, onConfirm, ...buttonProps }: Props) => {
   const [open, setOpen] = useState(false);
   const { clear } = useChatInteract();
   const { chatProfile, setChatProfile } = useChatSession();
@@ -86,9 +87,13 @@ const NewChatButton = ({ navigate, ...buttonProps }: Props) => {
   };
 
   const handleConfirm = () => {
-    setChatProfile(selectedChatProfile);
-    clear();
-    navigate?.('/');
+    if (onConfirm) {
+      onConfirm();
+    } else {
+      setChatProfile(selectedChatProfile);
+      clear();
+      navigate?.('/');
+    }
     handleClose();
   };
 
