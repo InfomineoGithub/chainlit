@@ -162,7 +162,7 @@ def on_message(func: Callable) -> Callable:
             else:
                 await func()
 
-    config.code.on_message = wrap_user_function(with_parent_id, with_task=True)
+    config.code.on_message = wrap_user_function(with_parent_id)
     return func
 
 
