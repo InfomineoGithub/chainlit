@@ -12,6 +12,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from typing import List, Optional, Union, cast
 
+import httpx
 import socketio
 from fastapi import (
     APIRouter,
@@ -564,7 +565,10 @@ async def logout(request: Request, response: Response):
         and oauth_refresh_token
         and (oauth_provider := get_oauth_provider(oauth_provider_id))
     ):
-        await oauth_provider.revoke_token(oauth_refresh_token)
+        try:
+            await oauth_provider.revoke_token(oauth_refresh_token)
+        except httpx.HTTPStatusError:
+            pass
 
     if config.code.on_logout:
         return await config.code.on_logout(request, response)
@@ -1448,9 +1452,9 @@ def validate_file_mime_type(file: UploadFile):
 
     accept = config.features.spontaneous_file_upload.accept
 
-    assert isinstance(accept, List) or isinstance(
-        accept, dict
-    ), "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
+    assert isinstance(accept, List) or isinstance(accept, dict), (
+        "Invalid configuration for spontaneous_file_upload, accept must be a list or a dict"
+    )
 
     if isinstance(accept, List):
         for pattern in accept:
