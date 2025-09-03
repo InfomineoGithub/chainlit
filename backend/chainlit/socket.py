@@ -7,10 +7,10 @@ from starlette.requests import cookie_parser
 from typing_extensions import TypeAlias
 
 from chainlit.auth import (
+    get_client_side_session_from_cookies,
     get_current_user,
     get_token_from_cookies,
     require_login,
-    get_client_side_session_from_cookies,
 )
 from chainlit.auth.jwt import decode_client_side_session
 from chainlit.chat_context import chat_context
@@ -203,7 +203,7 @@ async def connection_successful(sid):
                     chat_context.add(Message.from_dict(step))
 
             await context.emitter.resume_thread(thread)
-            return
+            # return # We need the on_chat_start to be called even when resuming a thread so that we can load the previous chat_context in the MessageHandler
         else:
             await context.emitter.send_resume_thread_error("Thread not found.")
 
