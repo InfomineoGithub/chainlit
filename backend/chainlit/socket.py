@@ -151,8 +151,6 @@ async def connect(sid, environ, auth):
 
     user_env_string = auth.get("userEnv")
     user_env = load_user_env(user_env_string)
-    http_referer = environ.get("HTTP_REFERER")
-    http_cookie = environ.get("HTTP_COOKIE")
     client_type = auth.get("clientType")
     url_encoded_chat_profile = auth.get("chatProfile")
     chat_profile = (
@@ -196,14 +194,18 @@ async def connection_successful(sid):
                 "first_interaction",
                 {"interaction": "resume", "thread_id": thread.get("id")},
             )
-            await config.code.on_chat_resume(thread)
+            # await config.code.on_chat_resume(thread) # Moved after loading the thread steps
 
             for step in thread.get("steps", []):
                 if "message" in step["type"]:
                     chat_context.add(Message.from_dict(step))
 
+            await config.code.on_chat_resume(
+                thread
+            )  # We need this after loading the thread steps, so that we can also load the elements
+
             await context.emitter.resume_thread(thread)
-            # return # We need the on_chat_start to be called even when resuming a thread so that we can load the previous chat_context in the MessageHandler
+            return
         else:
             await context.emitter.send_resume_thread_error("Thread not found.")
 
