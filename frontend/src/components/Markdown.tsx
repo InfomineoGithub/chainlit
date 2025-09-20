@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { omit } from 'lodash';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PluggableList } from 'react-markdown/lib';
 import rehypeKatex from 'rehype-katex';
@@ -26,6 +26,7 @@ import {
 
 import BlinkingCursor from './BlinkingCursor';
 import CodeSnippet from './CodeSnippet';
+import { CustomTableActionBar } from './CustomTableActionBar';
 import { ElementRef } from './Elements/ElementRef';
 import {
   type AlertProps,
@@ -95,6 +96,7 @@ const Markdown = ({
   className,
   children
 }: Props) => {
+  const tableRef = useRef<HTMLTableElement>(null);
   const apiClient = useContext(ChainlitContext);
 
   const rehypePlugins = useMemo(() => {
@@ -253,8 +255,13 @@ const Markdown = ({
         },
         table({ children, ...props }) {
           return (
-            <Card className="[&:not(:first-child)]:mt-2 [&:not(:last-child)]:mb-2">
-              <Table {...(props as any)}>{children}</Table>
+            <Card className="[&:not(:first-child)]:mt-2 [&:not(:last-child)]:mb-2 overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table ref={tableRef} {...(props as any)}>
+                  {children}
+                </Table>
+              </div>
+              <CustomTableActionBar tableRef={tableRef} />
             </Card>
           );
         },
