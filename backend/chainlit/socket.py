@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Dict, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 from starlette.requests import cookie_parser
@@ -15,7 +15,7 @@ from chainlit.auth import (
 from chainlit.auth.jwt import decode_client_side_session
 from chainlit.chat_context import chat_context
 from chainlit.config import ChainlitConfig, config
-from chainlit.context import init_ws_context
+from chainlit.context import ChainlitContext, init_ws_context
 from chainlit.data import get_data_layer
 from chainlit.logger import logger
 from chainlit.message import ErrorMessage, Message
@@ -296,6 +296,25 @@ async def process_message(session: WebsocketSession, payload: MessagePayload):
         await context.emitter.task_end()
 
 
+async def process_edited_message(context: ChainlitContext, edited_message: Message):
+    """Process an edited message from the user."""
+    try:
+        await context.emitter.task_start()
+
+        if config.code.on_message:
+            await asyncio.sleep(0.001)
+            await config.code.on_message(edited_message)
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        logger.exception(e)
+        await ErrorMessage(
+            author="Error", content=str(e) or e.__class__.__name__
+        ).send()
+    finally:
+        await context.emitter.task_end()
+
+
 @sio.on("edit_message")  # pyright: ignore [reportOptionalCall]
 async def edit_message(sid, payload: MessagePayload):
     """Handle a message sent by the User."""
@@ -315,15 +334,9 @@ async def edit_message(sid, payload: MessagePayload):
             await message.update()
             orig_message = message
 
-    await context.emitter.task_start()
-
-    if config.code.on_message:
-        try:
-            await config.code.on_message(orig_message)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            await context.emitter.task_end()
+    session.current_task = asyncio.create_task(
+        process_edited_message(context, cast(Message, orig_message))
+    )
 
 
 @sio.on("client_message")  # pyright: ignore [reportOptionalCall]
