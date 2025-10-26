@@ -111,14 +111,14 @@ export default function CustomChatProfileSelector({
             <img
               src={resolved_icons[selectedChatProfile]}
               alt={selectedChatProfile}
-              className="w-6 h-6 rounded-md object-cover shrink-0"
+              className="w-6 h-6 rounded-sm object-cover shrink-0"
             />
           )}
-          <span className="truncate max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis block">
+          <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis block">
             {selectedChatProfile ?? 'Select profile ... '}
           </span>
         </div>
-        <ChevronDown className="h-4 w-4" />
+        <ChevronDown className="h-5 w-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <ScrollArea className="max-h-[72] rounded-md">
@@ -150,7 +150,6 @@ export default function CustomChatProfileSelector({
     </DropdownMenu>
   );
 }
-
 interface ChatProfileDropdownMenuItemProps {
   profile: ChatProfile;
   selectedChatProfile: string | undefined;
@@ -158,6 +157,50 @@ interface ChatProfileDropdownMenuItemProps {
   icon?: string;
   allowHtml?: boolean;
   latex?: boolean;
+}
+
+interface ChatProfileGroupProps {
+  group: { name: string; chatProfiles: ChatProfile[] };
+  selectedChatProfile: string | undefined;
+  setSelectedChatProfile: Dispatch<SetStateAction<string | undefined>>;
+  resolved_icons: Record<string, string | undefined>;
+  allowHtml?: boolean;
+  latex?: boolean;
+}
+
+function ChatProfileGroup({
+  group,
+  selectedChatProfile,
+  setSelectedChatProfile,
+  resolved_icons,
+  allowHtml,
+  latex
+}: Readonly<ChatProfileGroupProps>) {
+  return (
+    <DropdownMenuSub key={group.name}>
+      <DropdownMenuSubTrigger>
+        <div className="flex items-center">
+          <span style={{ width: 15, display: 'inline-block' }} />
+          <span className="truncate max-w-[26rem] block">{group.name}</span>
+        </div>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent>
+          {group.chatProfiles.map((profile) => (
+            <ChatProfileDropdownMenuItem
+              key={profile.name}
+              profile={profile}
+              selectedChatProfile={selectedChatProfile}
+              setSelectedChatProfile={setSelectedChatProfile}
+              icon={resolved_icons[profile.name]}
+              allowHtml={allowHtml}
+              latex={latex}
+            />
+          ))}
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
+    </DropdownMenuSub>
+  );
 }
 
 function ChatProfileDropdownMenuItem({
@@ -189,7 +232,7 @@ function ChatProfileDropdownMenuItem({
                 className="w-6 h-6 rounded-md object-cover shrink-0"
               />
             )}
-            <span className="truncate max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis block">
+            <span className="truncate max-w-[26rem] whitespace-nowrap overflow-hidden text-ellipsis block">
               {profile.name}
             </span>
           </div>
@@ -207,51 +250,5 @@ function ChatProfileDropdownMenuItem({
         </Markdown>
       </HoverCardContent>
     </HoverCard>
-  );
-}
-
-interface ChatProfileGroupProps {
-  group: { name: string; chatProfiles: ChatProfile[] };
-  selectedChatProfile: string | undefined;
-  setSelectedChatProfile: Dispatch<SetStateAction<string | undefined>>;
-  resolved_icons: Record<string, string | undefined>;
-  allowHtml?: boolean;
-  latex?: boolean;
-}
-
-function ChatProfileGroup({
-  group,
-  selectedChatProfile,
-  setSelectedChatProfile,
-  resolved_icons,
-  allowHtml,
-  latex
-}: Readonly<ChatProfileGroupProps>) {
-  return (
-    <DropdownMenuSub key={group.name}>
-      <DropdownMenuSubTrigger>
-        <div className="flex items-center gap-2">
-          <span style={{ width: 15, display: 'inline-block' }} />
-          <span className="truncate max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis block">
-            {group.name}
-          </span>
-        </div>
-      </DropdownMenuSubTrigger>
-      <DropdownMenuPortal>
-        <DropdownMenuSubContent>
-          {group.chatProfiles.map((profile) => (
-            <ChatProfileDropdownMenuItem
-              key={profile.name}
-              profile={profile}
-              selectedChatProfile={selectedChatProfile}
-              setSelectedChatProfile={setSelectedChatProfile}
-              icon={resolved_icons[profile.name]}
-              allowHtml={allowHtml}
-              latex={latex}
-            />
-          ))}
-        </DropdownMenuSubContent>
-      </DropdownMenuPortal>
-    </DropdownMenuSub>
   );
 }

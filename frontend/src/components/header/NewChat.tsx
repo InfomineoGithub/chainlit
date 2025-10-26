@@ -39,11 +39,12 @@ export const NewChatDialog = ({
 }: NewChatDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent id="new-chat-dialog" className="sm:max-w-md">
+      <DialogContent id="new-chat-dialog" className="sm:max-w-[30rem] ">
         <DialogHeader>
           <DialogTitle>
             <Translator path="navigation.newChat.dialog.title" />
           </DialogTitle>
+
           <DialogDescription>
             <Translator path="navigation.newChat.dialog.description" />
           </DialogDescription>

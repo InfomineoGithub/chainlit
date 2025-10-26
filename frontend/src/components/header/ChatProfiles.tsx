@@ -76,7 +76,6 @@ export default function ChatProfiles({ navigate }: Props) {
 
   const allowHtml = config?.features?.unsafe_allow_html;
   const latex = config?.features?.latex;
-
   return (
     <div className="relative">
       <Select
