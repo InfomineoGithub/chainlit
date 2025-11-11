@@ -73,6 +73,7 @@ const Header = memo(() => {
               displayName={link.display_name}
               iconUrl={link.icon_url}
               url={link.url}
+              target={link.target}
             />
           ))}
         <ThemeToggle />

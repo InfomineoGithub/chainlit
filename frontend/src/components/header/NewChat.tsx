@@ -37,9 +37,20 @@ export const NewChatDialog = ({
   selectedChatProfile,
   setSelectedChatProfile
 }: NewChatDialogProps) => {
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    event.preventDefault();
+    if (event.key === 'Enter') {
+      handleConfirm();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent id="new-chat-dialog" className="sm:max-w-[30rem] ">
+      <DialogContent
+        id="new-chat-dialog"
+        className="sm:max-w-[30rem] "
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>
             <Translator path="navigation.newChat.dialog.title" />

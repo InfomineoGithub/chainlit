@@ -1,4 +1,10 @@
-import { MutableRefObject, useCallback, useRef, useState } from 'react';
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,6 +19,9 @@ import {
 import { Settings } from '@/components/icons/Settings';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'components/i18n/Translator';
+
+import { useQuery } from '@/hooks/query';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import { chatSettingsOpenState } from '@/state/project';
 import {
@@ -57,6 +66,18 @@ export default function MessageComposer({
   const { askUser, chatSettingsInputs, disabled: _disabled } = useChatData();
 
   const disabled = _disabled || !!attachments.find((a) => !a.uploaded);
+
+  const isMobile = useIsMobile();
+
+  let promptValue = '';
+  try {
+    const query = useQuery();
+    promptValue = query.get('prompt') || '';
+  } catch {
+    console.warn('Could not parse query parameters');
+  }
+
+  const [promptUsed, setPromptUsed] = useState(false);
 
   const onPaste = useCallback(
     (event: ClipboardEvent) => {
@@ -154,6 +175,20 @@ export default function MessageComposer({
     onReply
   ]);
 
+  useEffect(() => {
+    if (inputRef.current && promptValue && !promptUsed) {
+      const prompt = promptValue;
+      if (prompt) {
+        if (prompt.length > 1000) {
+          inputRef.current?.setValueExtern(prompt.slice(0, 1000));
+        } else {
+          inputRef.current?.setValueExtern(prompt);
+        }
+        setPromptUsed(true);
+      }
+    }
+  }, [promptValue, promptUsed]);
+
   return (
     <div
       id="message-composer"
@@ -167,7 +202,7 @@ export default function MessageComposer({
       <Input
         ref={inputRef}
         id="chat-input"
-        autoFocus
+        autoFocus={!isMobile}
         selectedCommand={selectedCommand}
         setSelectedCommand={setSelectedCommand}
         onChange={setValue}
