@@ -27,11 +27,11 @@ export default function CustomChatProfileView() {
       {chatProfileIcon && (
         <img
           src={chatProfileIcon}
-          alt={chatProfileData?.name}
+          alt={chatProfileData?.display_name || chatProfileData?.name}
           className="w-6 h-6 rounded-md object-cover"
         />
       )}
-      <span>{chatProfileData?.name}</span>
+      <span>{chatProfileData?.display_name || chatProfileData?.name}</span>
     </div>
   );
 }

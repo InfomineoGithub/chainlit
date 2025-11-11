@@ -66,6 +66,9 @@ export default function CustomChatProfileSelector({
 
   const allowHtml = config?.features?.unsafe_allow_html;
   const latex = config?.features?.latex;
+  const selectedChatProfileDisplayName = config.chatProfiles.find(
+    (chat_profile) => chat_profile.name == selectedChatProfile
+  )?.display_name;
 
   // Resolve icons for chat profiles
   // If the icon path includes '/public', it is resolved using the apiClient
@@ -115,7 +118,8 @@ export default function CustomChatProfileSelector({
             />
           )}
           <span className="truncate whitespace-nowrap overflow-hidden text-ellipsis block">
-            {selectedChatProfile ?? 'Select profile ... '}
+            {(selectedChatProfileDisplayName || selectedChatProfile) ??
+              'Select profile ... '}
           </span>
         </div>
         <ChevronDown className="h-5 w-5" />
@@ -228,12 +232,12 @@ function ChatProfileDropdownMenuItem({
             {icon && (
               <img
                 src={icon}
-                alt={profile.name}
+                alt={profile.display_name || profile.name}
                 className="w-6 h-6 rounded-md object-cover shrink-0"
               />
             )}
             <span className="truncate max-w-[26rem] whitespace-nowrap overflow-hidden text-ellipsis block">
-              {profile.name}
+              {profile.display_name || profile.name}
             </span>
           </div>
         </DropdownMenuItem>
