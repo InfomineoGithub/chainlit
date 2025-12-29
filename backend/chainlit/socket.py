@@ -40,12 +40,13 @@ class WebSocketSessionAuth(TypedDict):
     threadId: str | None
 
 
-def restore_existing_session(sid, session_id, emit_fn, emit_call_fn):
+def restore_existing_session(sid, session_id, emit_fn, emit_call_fn, environ):
     """Restore a session from the sessionId provided by the client."""
     if session := WebsocketSession.get_by_id(session_id):
         session.restore(new_socket_id=sid)
         session.emit = emit_fn
         session.emit_call = emit_call_fn
+        session.environ = environ
         return True
     return False
 
@@ -137,7 +138,7 @@ async def connect(sid: str, environ: WSGIEnvironment, auth: WebSocketSessionAuth
     user: User | PersistedUser | None = None
     token: str | None = None
     client_side_session = None
-    thread_id = auth.get("threadId")
+    thread_id = auth.get("threadId", None)
 
     if require_login():
         try:
@@ -151,14 +152,11 @@ async def connect(sid: str, environ: WSGIEnvironment, auth: WebSocketSessionAuth
             raise ConnectionRefusedError("authentication failed")
 
         if thread_id:
-            data_layer = get_data_layer()
-            if not data_layer:
-                logger.error("Data layer is not initialized.")
-                raise ConnectionRefusedError("data layer not initialized")
-
-            if not (await data_layer.get_thread_author(thread_id) == user.identifier):
-                logger.error("Authorization for the thread failed.")
-                raise ConnectionRefusedError("authorization failed")
+            if data_layer := get_data_layer():
+                thread = await data_layer.get_thread(thread_id)
+                if thread and not (thread["userIdentifier"] == user.identifier):
+                    logger.error("Authorization for the thread failed.")
+                    raise ConnectionRefusedError("authorization failed")
 
     # Session scoped function to emit to the client
     def emit_fn(event, data):
@@ -169,14 +167,14 @@ async def connect(sid: str, environ: WSGIEnvironment, auth: WebSocketSessionAuth
         return sio.call(event, data, timeout=timeout, to=sid)
 
     session_id = auth["sessionId"]
-    if restore_existing_session(sid, session_id, emit_fn, emit_call_fn):
+    if restore_existing_session(sid, session_id, emit_fn, emit_call_fn, environ):
         return True
 
-    user_env_string = auth.get("userEnv")
+    user_env_string = auth.get("userEnv", None)
     user_env = load_user_env(user_env_string)
 
     client_type = auth["clientType"]
-    url_encoded_chat_profile = auth.get("chatProfile")
+    url_encoded_chat_profile = auth.get("chatProfile", None)
     chat_profile = (
         unquote(url_encoded_chat_profile) if url_encoded_chat_profile else None
     )
