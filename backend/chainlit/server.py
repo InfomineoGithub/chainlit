@@ -10,7 +10,7 @@ import urllib.parse
 import webbrowser
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
-from typing import List, Optional, Union, cast
+from typing import TYPE_CHECKING, List, Optional, Union, cast
 
 import httpx
 import socketio
@@ -87,6 +87,9 @@ from chainlit.user import PersistedUser, User
 from chainlit.utils import utc_now
 
 from ._utils import is_path_inside
+
+if TYPE_CHECKING:
+    from chainlit.element import CustomElement, ElementDict
 
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -1101,7 +1104,7 @@ async def update_thread_element(
     """Update a specific thread element."""
 
     from chainlit.context import init_ws_context
-    from chainlit.element import Element, ElementDict
+    from chainlit.element import ElementDict
     from chainlit.session import WebsocketSession
 
     session = WebsocketSession.get_by_id(payload.sessionId)
@@ -1112,7 +1115,7 @@ async def update_thread_element(
     if element_dict["type"] != "custom":
         return {"success": False}
 
-    element = Element.from_dict(element_dict)
+    element = _sanitize_custom_element(element_dict)
 
     if current_user:
         if (
@@ -1125,6 +1128,7 @@ async def update_thread_element(
             )
 
     await element.update()
+
     return {"success": True}
 
 
@@ -1136,7 +1140,7 @@ async def delete_thread_element(
     """Delete a specific thread element."""
 
     from chainlit.context import init_ws_context
-    from chainlit.element import CustomElement, ElementDict
+    from chainlit.element import ElementDict
     from chainlit.session import WebsocketSession
 
     session = WebsocketSession.get_by_id(payload.sessionId)
@@ -1147,17 +1151,7 @@ async def delete_thread_element(
     if element_dict["type"] != "custom":
         return {"success": False}
 
-    element = CustomElement(
-        id=element_dict["id"],
-        object_key=element_dict["objectKey"],
-        chainlit_key=element_dict["chainlitKey"],
-        url=element_dict["url"],
-        for_id=element_dict.get("forId") or "",
-        thread_id=element_dict.get("threadId") or "",
-        name=element_dict["name"],
-        props=element_dict.get("props") or {},
-        display=element_dict["display"],
-    )
+    element = _sanitize_custom_element(element_dict)
 
     if current_user:
         if (
@@ -1172,6 +1166,19 @@ async def delete_thread_element(
     await element.remove()
 
     return {"success": True}
+
+
+def _sanitize_custom_element(element_dict: "ElementDict") -> "CustomElement":
+    from chainlit.element import CustomElement
+
+    return CustomElement(
+        id=element_dict["id"],
+        for_id=element_dict.get("forId") or "",
+        thread_id=element_dict.get("threadId") or "",
+        name=element_dict["name"],
+        props=element_dict.get("props") or {},
+        display=element_dict["display"],
+    )
 
 
 @router.put("/project/thread")

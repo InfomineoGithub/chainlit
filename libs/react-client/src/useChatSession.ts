@@ -24,6 +24,7 @@ import {
   loadingState,
   mcpState,
   messagesState,
+  modesState,
   resumeThreadErrorState,
   sessionIdState,
   sessionState,
@@ -39,6 +40,7 @@ import {
   ICommand,
   IElement,
   IMessageElement,
+  IMode,
   IStep,
   ITasklistElement,
   IThread
@@ -73,6 +75,7 @@ const useChatSession = () => {
   const setAskUser = useSetRecoilState(askUserState);
   const setCallFn = useSetRecoilState(callFnState);
   const setCommands = useSetRecoilState(commandsState);
+  const setModes = useSetRecoilState(modesState);
   const setSideView = useSetRecoilState(sideViewState);
   const setElements = useSetRecoilState(elementState);
   const setTasklists = useSetRecoilState(tasklistState);
@@ -242,7 +245,9 @@ const useChatSession = () => {
       });
 
       socket.on('resume_thread', (thread: IThread) => {
-        const isReadOnlyView = Boolean((thread as any)?.metadata?.viewer_read_only);
+        const isReadOnlyView = Boolean(
+          (thread as any)?.metadata?.viewer_read_only
+        );
         if (!isReadOnlyView && idToResume && thread.id !== idToResume) {
           window.location.href = `/thread/${thread.id}`;
         }
@@ -353,6 +358,10 @@ const useChatSession = () => {
 
       socket.on('set_commands', (commands: ICommand[]) => {
         setCommands(commands);
+      });
+
+      socket.on('set_modes', (modes: IMode[]) => {
+        setModes(modes);
       });
 
       socket.on('set_sidebar_title', (title: string) => {
