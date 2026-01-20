@@ -178,3 +178,19 @@ code {
     background-color: transparent;
   }
 }
+
+/* Source highlight animation */
+.source-highlight {
+  animation: source-highlight-fade .5s ease-in 0s 1 both;
+}
+
+@keyframes source-highlight-fade {
+  0% {
+    background-color: hsl(var(--primary) / 0.16);
+    border-color: hsl(var(--primary) / 0.6);
+  }
+  100% {
+    background-color: transparent;
+    border-color: hsl(var(--border));
+  }
+}

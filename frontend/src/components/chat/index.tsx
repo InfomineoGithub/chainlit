@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSetRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,6 +22,7 @@ import { useUpload } from '@/hooks/useUpload';
 import { useLayoutMaxWidth } from 'hooks/useLayoutMaxWidth';
 
 import { IAttachment, attachmentsState } from 'state/chat';
+import { sourcesOpenState } from 'state/sources';
 
 import { ErrorBoundary } from '../ErrorBoundary';
 import ChatFooter from './Footer';
@@ -33,6 +34,8 @@ const Chat = () => {
   const { user } = useAuth();
   const { config } = useConfig();
   const setAttachments = useSetRecoilState(attachmentsState);
+  const setSourcesOpen = useSetRecoilState(sourcesOpenState);
+  const sourcesOpen = useRecoilValue(sourcesOpenState);
   const setThreads = useSetRecoilState(threadHistoryState);
 
   const autoScrollRef = useRef(true);
@@ -76,6 +79,12 @@ const Chat = () => {
       window.dispatchEvent(event);
     }
   }, [callFn]);
+
+  useEffect(() => {
+    return () => {
+      setSourcesOpen(false);
+    };
+  }, [setSourcesOpen]);
 
   useEffect(() => {
     uploadFileRef.current = uploadFile;
@@ -217,6 +226,9 @@ const Chat = () => {
             config?.features?.assistant_message_autoscroll
           }
           autoScrollRef={autoScrollRef}
+          className={`transition-[padding] duration-300 ease-in-out ${
+            sourcesOpen ? 'pr-[320px]' : ''
+          }`}
         >
           <div
             className="flex flex-col mx-auto w-full flex-grow p-4"
@@ -235,7 +247,9 @@ const Chat = () => {
           </div>
         </ScrollContainer>
         <div
-          className="flex flex-col mx-auto w-full p-4 pt-0"
+          className={`flex flex-col mx-auto w-full p-4 pt-0 transition-[padding] duration-300 ease-in-out ${
+            sourcesOpen ? 'pr-[320px]' : ''
+          }`}
           style={{
             maxWidth: layoutMaxWidth
           }}

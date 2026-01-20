@@ -3,6 +3,7 @@ import { omit } from 'lodash';
 import { useContext, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PluggableList } from 'react-markdown/lib';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import remarkDirective from 'remark-directive';
@@ -23,6 +24,12 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+
+import {
+  selectedSourceIdState,
+  sourcesOpenState,
+  sourcesState
+} from '@/state/sources';
 
 import BlinkingCursor from './BlinkingCursor';
 import CodeSnippet from './CodeSnippet';
@@ -89,6 +96,14 @@ const cursorPlugin = () => {
   };
 };
 
+const getText = (value: React.ReactNode): string => {
+  if (typeof value === 'string' || typeof value === 'number')
+    return String(value);
+  if (Array.isArray(value)) return value.map(getText).join('');
+
+  return '';
+};
+
 const Markdown = ({
   allowHtml,
   latex,
@@ -98,6 +113,9 @@ const Markdown = ({
 }: Props) => {
   const tableRef = useRef<HTMLTableElement>(null);
   const apiClient = useContext(ChainlitContext);
+  const sources = useRecoilValue(sourcesState);
+  const setSourcesOpen = useSetRecoilState(sourcesOpenState);
+  const setSelectedSourceId = useSetRecoilState(selectedSourceIdState);
 
   const rehypePlugins = useMemo(() => {
     let rehypePlugins: PluggableList = [];
@@ -143,16 +161,24 @@ const Markdown = ({
           return <CodeSnippet {...props} />;
         },
         a({ children, ...props }) {
-          const name = children as string;
+          const name = getText(children);
           const element = refElements?.find((e) => e.name === name);
           if (element) {
             return <ElementRef element={element} />;
           } else {
+            const source = sources.find((item) => item.link === props.href);
             return (
               <a
                 {...props}
+                href={source?.link ?? props.href}
                 className="text-primary hover:underline"
                 target="_blank"
+                onClick={() => {
+                  if (!source) return;
+                  setSelectedSourceId(source.id);
+                  setSourcesOpen(true);
+                }}
+                rel="noreferrer"
               >
                 {children}
               </a>
@@ -164,9 +190,16 @@ const Markdown = ({
           const src = image.src.startsWith('/public')
             ? apiClient.buildEndpoint(image.src)
             : image.src;
-          
-          const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.ogv', '.m4v'];
-          const isVideo = videoExtensions.some(ext => 
+
+          const videoExtensions = [
+            '.mp4',
+            '.webm',
+            '.mov',
+            '.avi',
+            '.ogv',
+            '.m4v'
+          ];
+          const isVideo = videoExtensions.some((ext) =>
             src.toLowerCase().split(/[?#]/)[0].endsWith(ext)
           );
 

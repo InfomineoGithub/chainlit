@@ -1,0 +1,21 @@
+import { Source } from '@/state/sources';
+
+const toTitle = (link: string) => {
+  try {
+    return new URL(link).hostname.replace(/^www\./, '');
+  } catch {
+    return link;
+  }
+};
+
+export const getSourcesFromText = (content: string): Source[] => {
+  if (!content) return [];
+  content = content.trim();
+  const matches = content.matchAll(
+    /^\[(\d+)\]:\s*(https?:\/\/\S+)(?:\s+"([^"]+)")?/gm
+  );
+  return [...matches].map((match) => {
+    const [, id, link, description] = match;
+    return new Source(id, toTitle(link), link, description || '');
+  });
+};

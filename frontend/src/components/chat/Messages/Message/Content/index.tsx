@@ -1,11 +1,15 @@
 import { prepareContent } from '@/lib/message';
+import { getSourcesFromText } from '@/lib/sources';
 import { isEqual } from 'lodash';
-import { forwardRef, memo, useMemo } from 'react';
+import { forwardRef, memo, useEffect, useMemo } from 'react';
+import { useSetRecoilState } from 'recoil';
 
 import type { IMessageElement, IStep } from '@chainlit/react-client';
 
 import { CURSOR_PLACEHOLDER } from '@/components/BlinkingCursor';
 import { Markdown } from '@/components/Markdown';
+
+import { sourcesState } from '@/state/sources';
 
 import { InlinedElements } from './InlinedElements';
 
@@ -32,10 +36,14 @@ const getMessageRenderProps = (message: IStep) => ({
 const MessageContent = memo(
   forwardRef<HTMLDivElement, Props>(
     ({ message, elements, allowHtml, latex, sections }, ref) => {
+      const setSources = useSetRecoilState(sourcesState);
       const outputContent =
         message.streaming && message.output
           ? message.output + CURSOR_PLACEHOLDER
           : message.output;
+      useEffect(() => {
+        setSources(getSourcesFromText(outputContent));
+      }, [message.id, outputContent]);
 
       const {
         preparedContent: output,
