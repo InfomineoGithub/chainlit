@@ -57,11 +57,9 @@ interface Props {
   className?: string;
 }
 
-// Remark plugin: swap zero-width markers for a cursor node.
 const cursorPlugin = () => {
   return (tree: any) => {
     visit(tree, 'text', (node: any, index, parent) => {
-      // Split text nodes on the zero-width placeholder.
       const placeholderPattern = /\u200B/g;
       const matches = [...(node.value?.matchAll(placeholderPattern) || [])];
 
@@ -99,7 +97,6 @@ const cursorPlugin = () => {
           });
         }
 
-        // Replace the original text node with text + cursor nodes.
         parent!.children.splice(index, 1, ...newNodes);
       }
     });

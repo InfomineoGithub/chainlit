@@ -70,6 +70,7 @@ const Chat = () => {
 
   const { t } = useTranslation();
   const layoutMaxWidth = useLayoutMaxWidth();
+  const scrollPaddingClass = sourcesOpen ? 'pr-[320px]' : '';
 
   useEffect(() => {
     if (callFn) {
@@ -226,9 +227,8 @@ const Chat = () => {
             config?.features?.assistant_message_autoscroll
           }
           autoScrollRef={autoScrollRef}
-          className={`transition-[padding] duration-300 ease-in-out ${
-            sourcesOpen ? 'pr-[320px]' : ''
-          }`}
+          className={`transition-[padding] duration-300 ease-in-out ${scrollPaddingClass}`}
+          scrollButtonClassName={`transition-[padding] duration-300 ease-in-out ${scrollPaddingClass}`}
         >
           <div
             className="flex flex-col mx-auto w-full flex-grow p-4"
@@ -247,9 +247,7 @@ const Chat = () => {
           </div>
         </ScrollContainer>
         <div
-          className={`flex flex-col mx-auto w-full p-4 pt-0 transition-[padding] duration-300 ease-in-out ${
-            sourcesOpen ? 'pr-[320px]' : ''
-          }`}
+          className={`flex flex-col mx-auto w-full p-4 pt-0 transition-[padding] duration-300 ease-in-out ${scrollPaddingClass}`}
           style={{
             maxWidth: layoutMaxWidth
           }}
