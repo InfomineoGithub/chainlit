@@ -61,14 +61,16 @@ export default function SourcesPanel() {
   return (
     <div
       className={cn(
-        'absolute inset-y-0 right-0 z-20 h-full w-[320px] overflow-hidden transition-[transform,opacity] duration-300 ease-in-out shadow-xl hover:shadow-lg',
-        sourcesOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        'absolute inset-x-0 bottom-0 z-20 h-full w-full overflow-hidden transition-[transform,opacity] duration-300 ease-in-out shadow-xl hover:shadow-lg md:inset-y-0 md:right-0 md:left-auto md:w-[320px]',
+        sourcesOpen
+          ? 'translate-x-0 opacity-100'
+          : 'translate-x-full opacity-0 md:translate-x-full'
       )}
       aria-hidden={!sourcesOpen}
     >
       <aside
         className={cn(
-          'h-full w-[320px] bg-sidebar text-foreground rounded-ss-2xl flex flex-col',
+          'h-full w-full bg-sidebar text-foreground flex flex-col md:w-[320px] md:rounded-ss-2xl',
           !sourcesOpen && 'pointer-events-none'
         )}
       >
