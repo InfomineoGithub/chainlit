@@ -1,6 +1,6 @@
 import { Source } from '@/state/sources';
 
-const toTitle = (link: string) => {
+export const toTitle = (link: string) => {
   try {
     return new URL(link).hostname.replace(/^www\./, '');
   } catch {

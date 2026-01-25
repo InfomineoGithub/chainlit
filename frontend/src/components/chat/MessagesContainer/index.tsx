@@ -1,5 +1,7 @@
 import { MessageContext } from '@/contexts/MessageContext';
-import { useCallback, useContext, useMemo } from 'react';
+import { Citation, GroundingResponse } from '@/lib/grounding';
+import { toTitle } from '@/lib/sources';
+import { useCallback, useContext, useEffect, useMemo } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { toast } from 'sonner';
 
@@ -21,6 +23,8 @@ import {
 import { Messages } from '@/components/chat/Messages';
 import { useTranslation } from 'components/i18n/Translator';
 
+import { Source, groundingSentencesState, sourcesState } from '@/state/sources';
+
 interface Props {
   navigate?: (to: string) => void;
 }
@@ -34,8 +38,59 @@ const MessagesContainer = ({ navigate }: Props) => {
   const setMessages = useSetRecoilState(messagesState);
   const setSideView = useSetRecoilState(sideViewState);
   const sessionId = useRecoilValue(sessionIdState);
+  const setGroundingSentences = useSetRecoilState(groundingSentencesState);
+  const setSources = useSetRecoilState(sourcesState);
 
   const { t } = useTranslation();
+
+  const findAttributionSteps = useCallback((steps: IStep[]): IStep[] => {
+    return steps.filter((step) => {
+      return step.name === 'Attribution' && step.type === 'tool';
+    });
+  }, []);
+
+  const getCitationsFromAttributionOutput = useCallback(
+    (groundingResponse: GroundingResponse): Citation[] => {
+      if (!groundingResponse || !Array.isArray(groundingResponse.attribution))
+        return [];
+      const items = groundingResponse.attribution;
+      if (items.length === 0) return [];
+      if (items[0]?.sentence_citations) {
+        return items.flatMap((item) => item.sentence_citations ?? []);
+      }
+      return items.flatMap((item) => item.sentence_citations ?? []);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const attributionSteps = findAttributionSteps(messages).map((step) => ({
+      ...step,
+      output: JSON.parse(step.output)
+    }));
+
+    const attributionOutputs = attributionSteps.map((step) => step.output);
+    setGroundingSentences(attributionOutputs);
+    const citations = attributionOutputs.flatMap(
+      getCitationsFromAttributionOutput
+    );
+    const uniqueByLink = new Map<string, Source>();
+    citations.forEach((citation: Citation) => {
+      const link = citation?.source;
+      if (!link || uniqueByLink.has(link)) return;
+      const title = citation?.title || toTitle(link);
+      const description = citation?.snippets?.[0] || '';
+      uniqueByLink.set(link, new Source(link, title, link, description));
+    });
+    setSources(Array.from(uniqueByLink.values()));
+  }, [
+    findAttributionSteps,
+    getCitationsFromAttributionOutput,
+    messages,
+    setGroundingSentences,
+    setSources,
+    toTitle
+  ]);
 
   const uploadFile = useCallback(
     (file: File, onProgress: (progress: number) => void, parentId?: string) => {

@@ -1,15 +1,18 @@
+import {
+  applyUnderlineRanges,
+  getUnderlineRangesFromGrounding
+} from '@/lib/grounding';
 import { prepareContent } from '@/lib/message';
-import { getSourcesFromText } from '@/lib/sources';
 import { isEqual } from 'lodash';
-import { forwardRef, memo, useEffect, useMemo } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { forwardRef, memo, useMemo } from 'react';
+import { useRecoilValue } from 'recoil';
 
 import type { IMessageElement, IStep } from '@chainlit/react-client';
 
 import { CURSOR_PLACEHOLDER } from '@/components/BlinkingCursor';
 import { Markdown } from '@/components/Markdown';
 
-import { sourcesState } from '@/state/sources';
+import { groundingSentencesState } from '@/state/sources';
 
 import { InlinedElements } from './InlinedElements';
 
@@ -36,17 +39,14 @@ const getMessageRenderProps = (message: IStep) => ({
 const MessageContent = memo(
   forwardRef<HTMLDivElement, Props>(
     ({ message, elements, allowHtml, latex, sections }, ref) => {
-      const setSources = useSetRecoilState(sourcesState);
+      const groundingSentences = useRecoilValue(groundingSentencesState);
       const outputContent =
         message.streaming && message.output
           ? message.output + CURSOR_PLACEHOLDER
           : message.output;
-      useEffect(() => {
-        setSources(getSourcesFromText(outputContent));
-      }, [message.id, outputContent]);
 
       const {
-        preparedContent: output,
+        preparedContent: outputPrepared,
         inlinedElements: outputInlinedElements,
         refElements: outputRefElements
       } = prepareContent({
@@ -55,6 +55,23 @@ const MessageContent = memo(
         content: outputContent,
         language: message.language
       });
+
+      const output = useMemo(() => {
+        if (!outputPrepared) {
+          return outputPrepared;
+        }
+        if (message.type === 'user_message') {
+          return outputPrepared;
+        }
+        const ranges = getUnderlineRangesFromGrounding(
+          outputPrepared,
+          groundingSentences
+        );
+        if (ranges.length === 0) {
+          return outputPrepared;
+        }
+        return applyUnderlineRanges(outputPrepared, ranges);
+      }, [groundingSentences, message.type, outputPrepared]);
 
       const selectedSections = sections ?? ['input', 'output'];
       const sectionsSet = useMemo(

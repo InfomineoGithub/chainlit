@@ -1,3 +1,4 @@
+import { GroundingResponse } from '@/lib/grounding';
 import { RecoilState, atom } from 'recoil';
 
 export class Source {
@@ -15,14 +16,17 @@ export const sourcesOpenState: RecoilState<boolean> = atom({
   default: true
 });
 
-export const selectedSourceIdState: RecoilState<string | null> = atom<
-  string | null
->({
-  key: 'selectedSourceId',
-  default: '2'
-});
-
 export const sourcesState: RecoilState<Source[]> = atom({
   key: 'sourcesList',
   default: [] as Source[]
+});
+
+export const relatedSourceIdsState: RecoilState<string[]> = atom({
+  key: 'relatedSourceIds',
+  default: [] as string[]
+});
+
+export const groundingSentencesState: RecoilState<GroundingResponse[]> = atom({
+  key: 'groundingSentences',
+  default: [] as GroundingResponse[]
 });

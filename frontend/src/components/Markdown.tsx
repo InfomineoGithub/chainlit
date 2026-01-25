@@ -1,6 +1,12 @@
+import {
+  GROUNDING_UNDERLINE_END,
+  GROUNDING_UNDERLINE_START,
+  GroundingResponse
+} from '@/lib/grounding';
+import { toTitle } from '@/lib/sources';
 import { cn } from '@/lib/utils';
 import { omit } from 'lodash';
-import { useContext, useMemo, useRef } from 'react';
+import { useCallback, useContext, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PluggableList } from 'react-markdown/lib';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
@@ -26,7 +32,8 @@ import {
 } from '@/components/ui/table';
 
 import {
-  selectedSourceIdState,
+  groundingSentencesState,
+  relatedSourceIdsState,
   sourcesOpenState,
   sourcesState
 } from '@/state/sources';
@@ -50,9 +57,11 @@ interface Props {
   className?: string;
 }
 
+// Remark plugin: swap zero-width markers for a cursor node.
 const cursorPlugin = () => {
   return (tree: any) => {
     visit(tree, 'text', (node: any, index, parent) => {
+      // Split text nodes on the zero-width placeholder.
       const placeholderPattern = /\u200B/g;
       const matches = [...(node.value?.matchAll(placeholderPattern) || [])];
 
@@ -90,8 +99,129 @@ const cursorPlugin = () => {
           });
         }
 
+        // Replace the original text node with text + cursor nodes.
         parent!.children.splice(index, 1, ...newNodes);
       }
+    });
+  };
+};
+
+// Remark plugin: wraps grounded spans with a custom node.
+const groundingUnderlinePlugin = () => {
+  return (tree: any) => {
+    visit(tree, (node: any) => {
+      if (!Array.isArray(node.children)) return;
+
+      // Skip code blocks to avoid altering literals.
+      if (node.type === 'code' || node.type === 'inlineCode') return;
+
+      const newChildren: any[] = [];
+      let buffer: any[] = [];
+      let isBuffering = false;
+
+      // Remove marker tokens while preserving visible text.
+      const stripMarkers = (value: string) =>
+        value
+          .split(GROUNDING_UNDERLINE_START)
+          .join('')
+          .split(GROUNDING_UNDERLINE_END)
+          .join('');
+
+      // Flush buffered content into a custom underline node.
+      const pushUnderline = () => {
+        if (!isBuffering) return;
+
+        newChildren.push({
+          type: 'groundingUnderline',
+          data: {
+            hName: 'groundingUnderline',
+            hProperties: { className: 'grounding-underline' }
+          },
+          children: buffer
+        });
+        buffer = [];
+        isBuffering = false;
+      };
+
+      // Walk each child, grouping text between start/end markers.
+      node.children.forEach((child: any) => {
+        if (isBuffering) {
+          // Continue collecting until we find an end marker.
+          if (child.type === 'text') {
+            let value = child.value as string;
+            while (value.length) {
+              const endIndex = value.indexOf(GROUNDING_UNDERLINE_END);
+              if (endIndex === -1) {
+                buffer.push({ type: 'text', value: stripMarkers(value) });
+                value = '';
+              } else {
+                const beforeEnd = value.slice(0, endIndex);
+                if (beforeEnd) {
+                  buffer.push({ type: 'text', value: stripMarkers(beforeEnd) });
+                }
+                value = value.slice(endIndex + GROUNDING_UNDERLINE_END.length);
+                pushUnderline();
+              }
+            }
+          } else {
+            // Preserve non-text nodes inside the underline span.
+            buffer.push(child);
+          }
+          return;
+        }
+
+        if (child.type !== 'text') {
+          // Pass through nodes that cannot carry markers.
+          newChildren.push(child);
+          return;
+        }
+
+        let value = child.value as string;
+        while (value.length) {
+          const startIndex = value.indexOf(GROUNDING_UNDERLINE_START);
+          if (startIndex === -1) {
+            // No start marker: emit plain text as-is.
+            newChildren.push({ type: 'text', value: stripMarkers(value) });
+            value = '';
+            break;
+          }
+
+          const beforeStart = value.slice(0, startIndex);
+          if (beforeStart) {
+            newChildren.push({
+              type: 'text',
+              value: stripMarkers(beforeStart)
+            });
+          }
+
+          value = value.slice(startIndex + GROUNDING_UNDERLINE_START.length);
+          buffer = [];
+          isBuffering = true;
+
+          const endIndex = value.indexOf(GROUNDING_UNDERLINE_END);
+          if (endIndex === -1) {
+            // Start marker without end marker: keep buffering.
+            if (value) {
+              buffer.push({ type: 'text', value: stripMarkers(value) });
+            }
+            value = '';
+            break;
+          }
+
+          const underlinedText = value.slice(0, endIndex);
+          if (underlinedText) {
+            buffer.push({ type: 'text', value: stripMarkers(underlinedText) });
+          }
+          value = value.slice(endIndex + GROUNDING_UNDERLINE_END.length);
+          pushUnderline();
+        }
+      });
+
+      if (isBuffering && buffer.length > 0) {
+        newChildren.push(...buffer);
+      }
+
+      node.children = newChildren;
     });
   };
 };
@@ -102,6 +232,51 @@ const getText = (value: React.ReactNode): string => {
   if (Array.isArray(value)) return value.map(getText).join('');
 
   return '';
+};
+
+const normalizeSourceKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '');
+
+const getSourceKeys = (source: { id: string; title: string; link: string }) => {
+  const keys = new Set<string>();
+  [source.id, source.title, source.link, toTitle(source.link)].forEach(
+    (value) => {
+      if (!value) return;
+      keys.add(normalizeSourceKey(value));
+    }
+  );
+  return keys;
+};
+
+const matchesText = (candidate: string, target: string) => {
+  const normalizedCandidate = candidate.trim().toLowerCase();
+  const normalizedTarget = target.trim().toLowerCase();
+  if (!normalizedCandidate || !normalizedTarget) return false;
+  return (
+    normalizedCandidate.includes(normalizedTarget) ||
+    normalizedTarget.includes(normalizedCandidate)
+  );
+};
+
+const getCitationsForText = (
+  text: string,
+  groundingSentences: GroundingResponse[]
+) => {
+  if (!text || groundingSentences.length === 0) return [];
+  const citations = groundingSentences.flatMap((sentence) =>
+    sentence.attribution.flatMap((attribution) => {
+      const hasMatch =
+        (attribution.model_text && matchesText(attribution.model_text, text)) ||
+        (attribution.original_text &&
+          matchesText(attribution.original_text, text));
+      return hasMatch ? attribution.sentence_citations ?? [] : [];
+    })
+  );
+  return citations;
 };
 
 const Markdown = ({
@@ -115,7 +290,38 @@ const Markdown = ({
   const apiClient = useContext(ChainlitContext);
   const sources = useRecoilValue(sourcesState);
   const setSourcesOpen = useSetRecoilState(sourcesOpenState);
-  const setSelectedSourceId = useSetRecoilState(selectedSourceIdState);
+  const groundingSentences = useRecoilValue(groundingSentencesState);
+  const setRelatedSourceIds = useSetRecoilState(relatedSourceIdsState);
+
+  const handleUnderlineClick = useCallback(
+    (text: string) => {
+      const citations = getCitationsForText(text, groundingSentences);
+      const citationKeys = citations
+        .flatMap((citation) => [citation.source, citation.title])
+        .filter(Boolean)
+        .map(normalizeSourceKey);
+      const citationKeySet = new Set(citationKeys);
+      const matchedIds = new Set(
+        sources
+          .filter((source) => {
+            const sourceKeys = getSourceKeys(source);
+            return [...sourceKeys].some((sourceKey) => {
+              if (citationKeySet.has(sourceKey)) return true;
+              return [...citationKeySet].some(
+                (citationKey) =>
+                  citationKey.includes(sourceKey) ||
+                  sourceKey.includes(citationKey)
+              );
+            });
+          })
+          .map((source) => source.id)
+      );
+
+      setRelatedSourceIds([...matchedIds]);
+      setSourcesOpen(true);
+    },
+    [groundingSentences, setRelatedSourceIds, setSourcesOpen, sources]
+  );
 
   const rehypePlugins = useMemo(() => {
     let rehypePlugins: PluggableList = [];
@@ -131,6 +337,7 @@ const Markdown = ({
   const remarkPlugins = useMemo(() => {
     let remarkPlugins: PluggableList = [
       cursorPlugin,
+      groundingUnderlinePlugin,
       remarkGfm as any,
       remarkDirective as any,
       MarkdownAlert
@@ -175,7 +382,6 @@ const Markdown = ({
                 target="_blank"
                 onClick={() => {
                   if (!source) return;
-                  setSelectedSourceId(source.id);
                   setSourcesOpen(true);
                 }}
                 rel="noreferrer"
@@ -335,6 +541,23 @@ const Markdown = ({
           return <TableBody {...(props as any)}>{children}</TableBody>;
         },
         // @ts-expect-error custom plugin
+        groundingUnderline({ children, ...props }: any) {
+          return (
+            <span
+              {...omit(props, ['node'])}
+              className={cn('grounding-underline', props.className)}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const text = getText(children);
+                if (!text) return;
+                handleUnderlineClick(text);
+              }}
+            >
+              {children}
+            </span>
+          );
+        },
         blinkingCursor: () => <BlinkingCursor whitespace />,
         alert: ({
           type,

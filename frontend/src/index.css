@@ -179,18 +179,10 @@ code {
   }
 }
 
-/* Source highlight animation */
-.source-highlight {
-  animation: source-highlight-fade .5s ease-in 0s 1 both;
-}
-
-@keyframes source-highlight-fade {
-  0% {
-    background-color: hsl(var(--primary) / 0.16);
-    border-color: hsl(var(--primary) / 0.6);
-  }
-  100% {
-    background-color: transparent;
-    border-color: hsl(var(--border));
-  }
+.grounding-underline {
+  text-decoration-line: underline;
+  text-decoration-color: hsl(var(--primary) / 0.3);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
 }
