@@ -24,7 +24,7 @@ const SourceComponent = ({ source }: { source: Source }) => {
   return (
     <div
       key={source.id}
-      className="border-b rounded-xs px-3 py-2 transition-colors duration-200 ease-out hover:bg-sidebar-accent/60"
+      className="border-b rounded-xs py-2 transition-colors duration-200 ease-out hover:bg-sidebar-accent/40"
     >
       <a href={source.link} target="_blank" rel="noreferrer">
         <div className="text-sm font-semibold text-foreground truncate">

@@ -103,6 +103,10 @@ export const getUnderlineRangesFromGrounding = (
 
   groundingSentences.forEach((sentence) => {
     sentence.attribution.forEach((attribution) => {
+      if (!attribution.sentence_citations?.length) {
+        return;
+      }
+
       const modelText = attribution.model_text;
       const originalText = attribution.original_text;
       const startIndex = attribution.start_index;
