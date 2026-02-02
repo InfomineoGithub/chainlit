@@ -166,5 +166,17 @@ export const getUnderlineRangesFromGrounding = (
     });
   });
 
+  // Extend ranges that end right before a " [" so we don’t split citation brackets (e.g. ".[1]")
+  for (const r of ranges) {
+    if (
+      r.end + 1 < text.length &&
+      text[r.end] === ' ' &&
+      text[r.end + 1] === '['
+    ) {
+      // Include the space and opening bracket inside the underline span
+      r.end += 2;
+    }
+  }
+
   return normalizeRanges(ranges, text.length);
 };
