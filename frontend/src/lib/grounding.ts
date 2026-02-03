@@ -91,6 +91,36 @@ export const applyUnderlineRanges = (
   return result;
 };
 
+// Fixes issue with certain header markdown
+const adjustRangeForMarkdown = (
+  text: string,
+  start: number,
+  end: number
+): { start: number; end: number } => {
+  // Check if the range starts at the beginning of a line (allowing for whitespace)
+  const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+  const prefix = text.slice(lineStart, start);
+
+  // If there's text before the match on the same line that isn't whitespace, it's not a block starter
+  if (prefix.trim().length > 0) return { start, end };
+
+  // Check if the content itself starts with a markdown marker
+  const content = text.slice(start, end);
+  // Match: headers, blockquotes, list items, code fences
+  const match = content.match(
+    /^(\s*(?:#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*|`{3,}|~{3,}))/
+  );
+
+  if (match) {
+    const newStart = start + match[0].length;
+    if (newStart < end) {
+      return { start: newStart, end };
+    }
+  }
+
+  return { start, end };
+};
+
 export const getUnderlineRangesFromGrounding = (
   text: string,
   groundingSentences: GroundingResponse[]
@@ -116,13 +146,10 @@ export const getUnderlineRangesFromGrounding = (
         startIndex != null && endIndex != null && endIndex > startIndex;
 
       const addRangesForText = (candidateText: string, useOffsets: boolean) => {
-        let added = 0;
         let searchFrom = 0;
         while (searchFrom < text.length) {
           const matchIndex = text.indexOf(candidateText, searchFrom);
-          if (matchIndex === -1) {
-            break;
-          }
+          if (matchIndex === -1) break;
 
           if (
             useOffsets &&
@@ -136,21 +163,24 @@ export const getUnderlineRangesFromGrounding = (
               rangeStart >= matchIndex &&
               rangeEnd <= matchIndex + candidateText.length
             ) {
-              ranges.push({ start: rangeStart, end: rangeEnd });
-              added += 1;
+              const adjusted = adjustRangeForMarkdown(
+                text,
+                rangeStart,
+                rangeEnd
+              );
+              if (adjusted.end > adjusted.start) ranges.push(adjusted);
             }
           } else {
-            ranges.push({
-              start: matchIndex,
-              end: matchIndex + candidateText.length
-            });
-            added += 1;
+            const start = matchIndex;
+            const end = matchIndex + candidateText.length;
+            const adjusted = adjustRangeForMarkdown(text, start, end);
+            if (adjusted.end > adjusted.start) {
+              ranges.push(adjusted);
+            }
           }
 
           searchFrom = matchIndex + candidateText.length;
         }
-
-        return added;
       };
 
       const modelMatches =
