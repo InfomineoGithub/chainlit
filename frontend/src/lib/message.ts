@@ -18,16 +18,39 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const cleanModelOutput = (input: string) => {
+  const before = input ?? '';
+  let text = before;
+
+  // Drop leading sources block (: lines or [n]: lines) if followed by empty line
+  text = text.replace(
+    /^(?:(?:\s*:[^\r\n]*|\s*\[\s*\d+\s*\]\s*:[^\r\n]*)\r?\n)+\s*\r?\n/,
+    ''
+  );
+
+  // Strip citation brackets: [1], [[1]], [1](url)
+  text = text
+    .replace(/\s*\[\[\s*\d+\s*\]\]/g, '')
+    .replace(/\s*\[\s*\d+\s*\]\([^)]+\)/g, '')
+    .replace(/\s*\[\s*\d+\s*\]/g, '');
+
+  text = text.replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.!?;:])/g, '$1');
+
+  return { content: text, changed: text !== before };
+};
+
 export const prepareContent = ({
   elements,
   content,
   id,
-  language
+  language,
+  stripCitations
 }: {
   elements: IMessageElement[];
   content?: string;
   id: string;
   language?: string;
+  stripCitations?: boolean;
 }) => {
   const elementNames = elements.map((e) => escapeRegExp(e.name));
 
@@ -39,6 +62,10 @@ export const prepareContent = ({
     : undefined;
 
   let preparedContent = content ? content.trim() : '';
+  if (stripCitations && preparedContent) {
+    const cleaned = cleanModelOutput(preparedContent);
+    preparedContent = cleaned.content;
+  }
   const inlinedElements = elements.filter(
     (e) => isForIdMatch(id, e?.forId) && e.display === 'inline'
   );

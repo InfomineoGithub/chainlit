@@ -53,7 +53,8 @@ const MessageContent = memo(
         elements,
         id: message.id,
         content: outputContent,
-        language: message.language
+        language: message.language,
+        stripCitations: message.type !== 'user_message'
       });
 
       const output = useMemo(() => {
