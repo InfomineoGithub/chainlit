@@ -80,25 +80,43 @@ export const InlineSources = ({ sources, className }: InlineSourcesProps) => {
     return null;
   }
 
+  const isValidHttpLink = (link: string) => {
+    return link.startsWith('http://') || link.startsWith('https://');
+  };
+
   return (
     <div className={cn('flex flex-wrap gap-1.5 mt-2', className)}>
-      {sources.map((source) => (
-        <a
-          key={source.id}
-          href={source.link}
-          target="_blank"
-          rel="noreferrer"
-          className="no-underline"
-        >
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1.5 px-2 py-0.5 text-xs hover:bg-accent/50 transition-colors cursor-pointer"
+      {sources.map((source) => {
+        const isClickable = isValidHttpLink(source.link);
+
+        return (
+          <a
+            key={source.id}
+            href={isClickable ? source.link : undefined}
+            target={isClickable ? '_blank' : undefined}
+            rel={isClickable ? 'noreferrer' : undefined}
+            className="no-underline"
+            onClick={(e) => {
+              if (!isClickable) {
+                e.preventDefault();
+              }
+            }}
           >
-            <SourceIcon source={source} />
-            <span className="truncate max-w-[120px]">{source.title}</span>
-          </Badge>
-        </a>
-      ))}
+            <Badge
+              variant="outline"
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 text-xs transition-colors',
+                isClickable
+                  ? 'hover:bg-accent/50 cursor-pointer'
+                  : 'cursor-not-allowed opacity-60'
+              )}
+            >
+              <SourceIcon source={source} />
+              <span className="truncate max-w-[120px]">{source.title}</span>
+            </Badge>
+          </a>
+        );
+      })}
     </div>
   );
 };
