@@ -2,7 +2,8 @@ import { getDomainFromUrl, getFaviconUrl } from '@/lib/favicon';
 import {
   GROUNDING_UNDERLINE_END,
   GROUNDING_UNDERLINE_START,
-  GroundingResponse
+  GroundingResponse,
+  stripInlineFormatting
 } from '@/lib/grounding';
 import { toTitle } from '@/lib/sources';
 import { cn } from '@/lib/utils';
@@ -252,8 +253,10 @@ const getSourceKeys = (source: { id: string; title: string; link: string }) => {
 };
 
 const matchesText = (candidate: string, target: string) => {
-  const normalizedCandidate = candidate.trim().toLowerCase();
-  const normalizedTarget = target.trim().toLowerCase();
+  const normalizedCandidate = stripInlineFormatting(candidate)
+    .trim()
+    .toLowerCase();
+  const normalizedTarget = stripInlineFormatting(target).trim().toLowerCase();
   if (!normalizedCandidate || !normalizedTarget) return false;
   return (
     normalizedCandidate.includes(normalizedTarget) ||
