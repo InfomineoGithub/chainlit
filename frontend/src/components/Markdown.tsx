@@ -161,13 +161,25 @@ const groundingUnderlinePlugin = () => {
                 }
                 value = value.slice(endIndex + GROUNDING_UNDERLINE_END.length);
                 pushUnderline();
+                // After pushing underline, continue processing remaining text in the same node
+                // by updating child.value and falling through to process it as non-buffering text
+                if (value) {
+                  child.value = value;
+                  // Don't return - let it fall through to process remaining text
+                  break;
+                }
+                value = '';
               }
             }
+            if (!value) {
+              return;
+            }
+            // If we get here, there's remaining text to process (fall through)
           } else {
             // Preserve non-text nodes inside the underline span.
             buffer.push(child);
+            return;
           }
-          return;
         }
 
         if (child.type !== 'text') {
@@ -177,6 +189,7 @@ const groundingUnderlinePlugin = () => {
         }
 
         let value = child.value as string;
+
         while (value.length) {
           const startIndex = value.indexOf(GROUNDING_UNDERLINE_START);
           if (startIndex === -1) {
