@@ -1,3 +1,5 @@
+import { getFaviconUrl } from '@/lib/favicon';
+
 import { Source } from '@/state/sources';
 
 export const toTitle = (link: string) => {
@@ -16,6 +18,14 @@ export const getSourcesFromText = (content: string): Source[] => {
   );
   return [...matches].map((match) => {
     const [, id, link, description] = match;
-    return new Source(id, toTitle(link), link, description || '');
+    const icon = getFaviconUrl(link);
+    return new Source(
+      id,
+      toTitle(link),
+      link,
+      description || '',
+      undefined,
+      icon || undefined
+    );
   });
 };

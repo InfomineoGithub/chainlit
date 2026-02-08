@@ -1,6 +1,17 @@
+import { getFileType } from '@/lib/favicon';
 import { cn } from '@/lib/utils';
 import { capitalize } from 'lodash';
-import { X } from 'lucide-react';
+import {
+  ExternalLink,
+  File,
+  FileArchive,
+  FileCode,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  X
+} from 'lucide-react';
+import { useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 
 import { Button } from '@/components/ui/button';
@@ -8,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import {
   Source,
   relatedSourceIdsState,
+  sourceIconsState,
   sourcesOpenState,
   sourcesState
 } from 'state/sources';
@@ -20,27 +32,86 @@ const urlDomain = (url: string) => {
   return new URL(url).hostname;
 };
 
+const getDomain = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
+
+const getDocIcon = (source: Source) => {
+  const fileType = getFileType(source.title || source.link);
+  const className = 'size-4 text-muted-foreground';
+
+  switch (fileType) {
+    case 'pdf':
+      return <File className={className} />;
+    case 'doc':
+      return <FileText className={className} />;
+    case 'sheet':
+      return <FileSpreadsheet className={className} />;
+    case 'image':
+      return <FileImage className={className} />;
+    case 'code':
+      return <FileCode className={className} />;
+    case 'archive':
+      return <FileArchive className={className} />;
+    case 'text':
+      return <FileText className={className} />;
+    default:
+      return <ExternalLink className={className} />;
+  }
+};
+
+const SourceIcon = ({ source }: { source: Source }) => {
+  const sourceIcons = useRecoilValue(sourceIconsState);
+  const domain = getDomain(source.link);
+  const iconUrl = source.icon || sourceIcons[domain];
+  const [imageError, setImageError] = useState(false);
+
+  return (
+    <div className="flex items-center justify-center size-8 rounded-md overflow-hidden bg-muted border shrink-0">
+      {iconUrl && !imageError ? (
+        <img
+          src={iconUrl}
+          alt={domain}
+          className="size-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        getDocIcon(source)
+      )}
+    </div>
+  );
+};
+
 const SourceComponent = ({ source }: { source: Source }) => {
   return (
     <div
       key={source.id}
       className="border-b rounded-xs py-2 transition-colors duration-200 ease-out hover:bg-sidebar-accent/40"
     >
-      <a href={source.link} target="_blank" rel="noreferrer">
-        <div className="text-sm font-semibold text-foreground truncate">
-          {capitalize(source.title)}
-        </div>
-      </a>
-      <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-        {source.description}
-      </div>
       <a
-        className="text-xs text-muted-foreground mt-1 inline-block"
         href={source.link}
         target="_blank"
         rel="noreferrer"
+        className="flex gap-3 items-start"
       >
-        {urlDomain(source.link)}
+        <SourceIcon source={source} />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-foreground truncate">
+            {capitalize(source.title)}
+          </div>
+          {source.description && (
+            <div className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+              {source.description}
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground mt-1">
+            {urlDomain(source.link)}
+          </div>
+        </div>
       </a>
     </div>
   );

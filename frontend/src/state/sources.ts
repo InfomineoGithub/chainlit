@@ -7,9 +7,16 @@ export class Source {
     public readonly title: string,
     public readonly link: string,
     public readonly description?: string,
-    public readonly images?: string[]
+    public readonly images?: string[],
+    public readonly icon?: string
   ) {}
 }
+
+// Map of domain to icon URL (fetched globally)
+export const sourceIconsState: RecoilState<Record<string, string>> = atom({
+  key: 'sourceIcons',
+  default: {} as Record<string, string>
+});
 
 export const sourcesOpenState: RecoilState<boolean> = atom({
   key: 'sourcesOpen',

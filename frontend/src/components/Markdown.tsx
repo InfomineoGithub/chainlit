@@ -1,3 +1,4 @@
+import { getDomainFromUrl, getFaviconUrl } from '@/lib/favicon';
 import {
   GROUNDING_UNDERLINE_END,
   GROUNDING_UNDERLINE_START,
@@ -6,7 +7,7 @@ import {
 import { toTitle } from '@/lib/sources';
 import { cn } from '@/lib/utils';
 import { omit } from 'lodash';
-import { useCallback, useContext, useMemo, useRef } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PluggableList } from 'react-markdown/lib';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
@@ -34,6 +35,7 @@ import {
 import {
   groundingSentencesState,
   relatedSourceIdsState,
+  sourceIconsState,
   sourcesOpenState,
   sourcesState
 } from '@/state/sources';
@@ -266,6 +268,12 @@ const getCitationsForText = (
   if (!text || groundingSentences.length === 0) return [];
   const citations = groundingSentences.flatMap((sentence) =>
     sentence.attribution.flatMap((attribution) => {
+      if (
+        attribution.supported === false ||
+        !attribution.sentence_citations?.length
+      ) {
+        return [];
+      }
       const hasMatch =
         (attribution.model_text && matchesText(attribution.model_text, text)) ||
         (attribution.original_text &&
@@ -289,6 +297,66 @@ const Markdown = ({
   const setSourcesOpen = useSetRecoilState(sourcesOpenState);
   const groundingSentences = useRecoilValue(groundingSentencesState);
   const setRelatedSourceIds = useSetRecoilState(relatedSourceIdsState);
+  const setSourceIcons = useSetRecoilState(sourceIconsState);
+
+  // Extract and cache source icons from grounding citations
+  useEffect(() => {
+    if (!groundingSentences || groundingSentences.length === 0) {
+      return;
+    }
+
+    const newIcons: Record<string, string> = {};
+
+    groundingSentences.forEach((sentence) => {
+      sentence.attribution.forEach((attribution) => {
+        if (
+          attribution.supported === false ||
+          !attribution.sentence_citations?.length
+        )
+          return;
+        attribution.sentence_citations.forEach((citation) => {
+          if (citation.source) {
+            // Check if it's a URL
+            if (
+              citation.source.startsWith('http://') ||
+              citation.source.startsWith('https://')
+            ) {
+              const domain = getDomainFromUrl(citation.source);
+              const iconUrl = getFaviconUrl(citation.source);
+              if (iconUrl && !newIcons[domain]) {
+                newIcons[domain] = iconUrl;
+              }
+            }
+          }
+        });
+      });
+    });
+
+    if (Object.keys(newIcons).length > 0) {
+      setSourceIcons((prev) => ({ ...prev, ...newIcons }));
+    }
+  }, [groundingSentences, setSourceIcons]);
+
+  // Also extract icons from sources list
+  useEffect(() => {
+    if (!sources || sources.length === 0) {
+      return;
+    }
+
+    const newIcons: Record<string, string> = {};
+
+    sources.forEach((source) => {
+      const domain = getDomainFromUrl(source.link);
+      const iconUrl = source.icon || getFaviconUrl(source.link);
+      if (iconUrl && !newIcons[domain]) {
+        newIcons[domain] = iconUrl;
+      }
+    });
+
+    if (Object.keys(newIcons).length > 0) {
+      setSourceIcons((prev) => ({ ...prev, ...newIcons }));
+    }
+  }, [sources, setSourceIcons]);
 
   const handleUnderlineClick = useCallback(
     (text: string) => {
