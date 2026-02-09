@@ -21,24 +21,11 @@ const escapeRegExp = (string: string) => {
 const removeCitations = (input: string) => {
   const before = input ?? '';
   let text = before;
-  // Remove citations formatted as markdown links:
-  // the citations are formatted as [1] or [[1]]
-  // only the number is a clickable link, the rest is plain text
-  // remove the brackets and the link number
-  // other types of texts and links exist, and must be preserved
 
-  // Drop leading sources block (: lines or [n]: lines) if followed by empty line
-  // text = text.replace(
-  //   /^(?:(?:\s*:[^\r\n]*|\s*\[\s*\d+\s*\]\s*:[^\r\n]*)\r?\n)+\s*\r?\n/,
-  //   ''
-  // );
-
-  // setp 2: capture the group made out of brackets enclosing a few numbers separated by commas: "[[1],[2],[3]]" or "[[2],[5],[8]]" as reapeated groups
-
+  // capture the group made out of brackets enclosing a few numbers separated by commas: "[[1],[2],[3]]" or "[[2],[5],[8]]" as reapeated groups
   text = text.replace(/(\[(?:\[\d+\],)+\[\d+\]\])/g, '');
 
-  // step 1: capture the group made out of brackets enclosing one number: "[1]" or "[[1]]" and replace the brackets and number with ''
-  // text = text.replace(/\[\[\s*\d+\s*\]\]/g, '');
+  // capture the group made out of brackets enclosing one number: "[1]" or "[[1]]" and replace the brackets and number with ''
   text = text.replace(/\[\[\d\]\]/g, '');
 
   return { content: text, changed: text !== before };

@@ -1,17 +1,8 @@
-import { getFileType } from '@/lib/favicon';
 import { cn } from '@/lib/utils';
-import {
-  ExternalLink,
-  File,
-  FileArchive,
-  FileCode,
-  FileImage,
-  FileSpreadsheet,
-  FileText
-} from 'lucide-react';
 import { useState } from 'react';
 import { useRecoilValue } from 'recoil';
 
+import { getDocIcon } from '@/components/SourcesPanel';
 import { Badge } from '@/components/ui/badge';
 
 import { Source, sourceIconsState } from '@/state/sources';
@@ -26,30 +17,6 @@ const getDomain = (url: string) => {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return url;
-  }
-};
-
-const getDocIcon = (source: Source) => {
-  const fileType = getFileType(source.title || source.link);
-  const className = 'size-2.5 text-muted-foreground';
-
-  switch (fileType) {
-    case 'pdf':
-      return <File className={className} />;
-    case 'doc':
-      return <FileText className={className} />;
-    case 'sheet':
-      return <FileSpreadsheet className={className} />;
-    case 'image':
-      return <FileImage className={className} />;
-    case 'code':
-      return <FileCode className={className} />;
-    case 'archive':
-      return <FileArchive className={className} />;
-    case 'text':
-      return <FileText className={className} />;
-    default:
-      return <ExternalLink className={className} />;
   }
 };
 
