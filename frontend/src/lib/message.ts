@@ -18,16 +18,31 @@ const escapeRegExp = (string: string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const removeCitations = (input: string) => {
+  const before = input ?? '';
+  let text = before;
+
+  // capture the group made out of brackets enclosing a few numbers separated by commas: "[[1],[2],[3]]" or "[[2],[5],[8]]" as reapeated groups
+  text = text.replace(/(\[(?:\[\d+\],)+\[\d+\]\])/g, '');
+
+  // capture the group made out of brackets enclosing one number: "[1]" or "[[1]]" and replace the brackets and number with ''
+  text = text.replace(/\[\[\d\]\]/g, '');
+
+  return { content: text, changed: text !== before };
+};
+
 export const prepareContent = ({
   elements,
   content,
   id,
-  language
+  language,
+  stripCitations
 }: {
   elements: IMessageElement[];
   content?: string;
   id: string;
   language?: string;
+  stripCitations?: boolean;
 }) => {
   const elementNames = elements.map((e) => escapeRegExp(e.name));
 
@@ -39,6 +54,10 @@ export const prepareContent = ({
     : undefined;
 
   let preparedContent = content ? content.trim() : '';
+  if (stripCitations && preparedContent) {
+    const cleaned = removeCitations(preparedContent);
+    preparedContent = cleaned.content;
+  }
   const inlinedElements = elements.filter(
     (e) => isForIdMatch(id, e?.forId) && e.display === 'inline'
   );

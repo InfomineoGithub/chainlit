@@ -1,8 +1,17 @@
+import { getDomainFromUrl, getFaviconUrl } from '@/lib/favicon';
+import {
+  GROUNDING_UNDERLINE_END,
+  GROUNDING_UNDERLINE_START,
+  GroundingResponse,
+  stripInlineFormatting
+} from '@/lib/grounding';
+import { toTitle } from '@/lib/sources';
 import { cn } from '@/lib/utils';
 import { omit } from 'lodash';
-import { useContext, useMemo, useRef } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PluggableList } from 'react-markdown/lib';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import remarkDirective from 'remark-directive';
@@ -23,6 +32,14 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+
+import {
+  groundingSentencesState,
+  relatedSourceIdsState,
+  sourceIconsState,
+  sourcesOpenState,
+  sourcesState
+} from '@/state/sources';
 
 import BlinkingCursor from './BlinkingCursor';
 import CodeSnippet from './CodeSnippet';
@@ -89,6 +106,200 @@ const cursorPlugin = () => {
   };
 };
 
+// Remark plugin: wraps grounded spans with a custom node.
+const groundingUnderlinePlugin = () => {
+  return (tree: any) => {
+    visit(tree, (node: any) => {
+      if (!Array.isArray(node.children)) return;
+
+      // Skip code blocks to avoid altering literals.
+      if (node.type === 'code' || node.type === 'inlineCode') return;
+
+      const newChildren: any[] = [];
+      let buffer: any[] = [];
+      let isBuffering = false;
+
+      // Remove marker tokens while preserving visible text.
+      const stripMarkers = (value: string) =>
+        value
+          .split(GROUNDING_UNDERLINE_START)
+          .join('')
+          .split(GROUNDING_UNDERLINE_END)
+          .join('');
+
+      // Flush buffered content into a custom underline node.
+      const pushUnderline = () => {
+        if (!isBuffering) return;
+
+        newChildren.push({
+          type: 'groundingUnderline',
+          data: {
+            hName: 'groundingUnderline',
+            hProperties: { className: 'grounding-underline' }
+          },
+          children: buffer
+        });
+        buffer = [];
+        isBuffering = false;
+      };
+
+      // Walk each child, grouping text between start/end markers.
+      node.children.forEach((child: any) => {
+        if (isBuffering) {
+          // Continue collecting until we find an end marker.
+          if (child.type === 'text') {
+            let value = child.value as string;
+            while (value.length) {
+              const endIndex = value.indexOf(GROUNDING_UNDERLINE_END);
+              if (endIndex === -1) {
+                buffer.push({ type: 'text', value: stripMarkers(value) });
+                value = '';
+              } else {
+                const beforeEnd = value.slice(0, endIndex);
+                if (beforeEnd) {
+                  buffer.push({ type: 'text', value: stripMarkers(beforeEnd) });
+                }
+                value = value.slice(endIndex + GROUNDING_UNDERLINE_END.length);
+                pushUnderline();
+                // After pushing underline, continue processing remaining text in the same node
+                // by updating child.value and falling through to process it as non-buffering text
+                if (value) {
+                  child.value = value;
+                  // Don't return - let it fall through to process remaining text
+                  break;
+                }
+                value = '';
+              }
+            }
+            if (!value) {
+              return;
+            }
+            // If we get here, there's remaining text to process (fall through)
+          } else {
+            // Preserve non-text nodes inside the underline span.
+            buffer.push(child);
+            return;
+          }
+        }
+
+        if (child.type !== 'text') {
+          // Pass through nodes that cannot carry markers.
+          newChildren.push(child);
+          return;
+        }
+
+        let value = child.value as string;
+
+        while (value.length) {
+          const startIndex = value.indexOf(GROUNDING_UNDERLINE_START);
+          if (startIndex === -1) {
+            // No start marker: emit plain text as-is.
+            newChildren.push({ type: 'text', value: stripMarkers(value) });
+            value = '';
+            break;
+          }
+
+          const beforeStart = value.slice(0, startIndex);
+          if (beforeStart) {
+            newChildren.push({
+              type: 'text',
+              value: stripMarkers(beforeStart)
+            });
+          }
+
+          value = value.slice(startIndex + GROUNDING_UNDERLINE_START.length);
+          buffer = [];
+          isBuffering = true;
+
+          const endIndex = value.indexOf(GROUNDING_UNDERLINE_END);
+          if (endIndex === -1) {
+            // Start marker without end marker: keep buffering.
+            if (value) {
+              buffer.push({ type: 'text', value: stripMarkers(value) });
+            }
+            value = '';
+            break;
+          }
+
+          const underlinedText = value.slice(0, endIndex);
+          if (underlinedText) {
+            buffer.push({ type: 'text', value: stripMarkers(underlinedText) });
+          }
+          value = value.slice(endIndex + GROUNDING_UNDERLINE_END.length);
+          pushUnderline();
+        }
+      });
+
+      if (isBuffering && buffer.length > 0) {
+        newChildren.push(...buffer);
+      }
+
+      node.children = newChildren;
+    });
+  };
+};
+
+const getText = (value: React.ReactNode): string => {
+  if (typeof value === 'string' || typeof value === 'number')
+    return String(value);
+  if (Array.isArray(value)) return value.map(getText).join('');
+
+  return '';
+};
+
+const normalizeSourceKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '');
+
+const getSourceKeys = (source: { id: string; title: string; link: string }) => {
+  const keys = new Set<string>();
+  [source.id, source.title, source.link, toTitle(source.link)].forEach(
+    (value) => {
+      if (!value) return;
+      keys.add(normalizeSourceKey(value));
+    }
+  );
+  return keys;
+};
+
+const matchesText = (candidate: string, target: string) => {
+  const normalizedCandidate = stripInlineFormatting(candidate)
+    .trim()
+    .toLowerCase();
+  const normalizedTarget = stripInlineFormatting(target).trim().toLowerCase();
+  if (!normalizedCandidate || !normalizedTarget) return false;
+  return (
+    normalizedCandidate.includes(normalizedTarget) ||
+    normalizedTarget.includes(normalizedCandidate)
+  );
+};
+
+const getCitationsForText = (
+  text: string,
+  groundingSentences: GroundingResponse[]
+) => {
+  if (!text || groundingSentences.length === 0) return [];
+  const citations = groundingSentences.flatMap((sentence) =>
+    sentence.attribution.flatMap((attribution) => {
+      if (
+        attribution.supported === false ||
+        !attribution.sentence_citations?.length
+      ) {
+        return [];
+      }
+      const hasMatch =
+        (attribution.model_text && matchesText(attribution.model_text, text)) ||
+        (attribution.original_text &&
+          matchesText(attribution.original_text, text));
+      return hasMatch ? attribution.sentence_citations ?? [] : [];
+    })
+  );
+  return citations;
+};
+
 const Markdown = ({
   allowHtml,
   latex,
@@ -98,6 +309,100 @@ const Markdown = ({
 }: Props) => {
   const tableRef = useRef<HTMLTableElement>(null);
   const apiClient = useContext(ChainlitContext);
+  const sources = useRecoilValue(sourcesState);
+  const setSourcesOpen = useSetRecoilState(sourcesOpenState);
+  const groundingSentences = useRecoilValue(groundingSentencesState);
+  const setRelatedSourceIds = useSetRecoilState(relatedSourceIdsState);
+  const setSourceIcons = useSetRecoilState(sourceIconsState);
+
+  // Extract and cache source icons from grounding citations
+  useEffect(() => {
+    if (!groundingSentences || groundingSentences.length === 0) {
+      return;
+    }
+
+    const newIcons: Record<string, string> = {};
+
+    groundingSentences.forEach((sentence) => {
+      sentence.attribution.forEach((attribution) => {
+        if (
+          attribution.supported === false ||
+          !attribution.sentence_citations?.length
+        )
+          return;
+        attribution.sentence_citations.forEach((citation) => {
+          if (citation.source) {
+            // Check if it's a URL
+            if (
+              citation.source.startsWith('http://') ||
+              citation.source.startsWith('https://')
+            ) {
+              const domain = getDomainFromUrl(citation.source);
+              const iconUrl = getFaviconUrl(citation.source);
+              if (iconUrl && !newIcons[domain]) {
+                newIcons[domain] = iconUrl;
+              }
+            }
+          }
+        });
+      });
+    });
+
+    if (Object.keys(newIcons).length > 0) {
+      setSourceIcons((prev) => ({ ...prev, ...newIcons }));
+    }
+  }, [groundingSentences, setSourceIcons]);
+
+  // Also extract icons from sources list
+  useEffect(() => {
+    if (!sources || sources.length === 0) {
+      return;
+    }
+
+    const newIcons: Record<string, string> = {};
+
+    sources.forEach((source) => {
+      const domain = getDomainFromUrl(source.link);
+      const iconUrl = source.icon || getFaviconUrl(source.link);
+      if (iconUrl && !newIcons[domain]) {
+        newIcons[domain] = iconUrl;
+      }
+    });
+
+    if (Object.keys(newIcons).length > 0) {
+      setSourceIcons((prev) => ({ ...prev, ...newIcons }));
+    }
+  }, [sources, setSourceIcons]);
+
+  const handleUnderlineClick = useCallback(
+    (text: string) => {
+      const citations = getCitationsForText(text, groundingSentences);
+      const citationKeys = citations
+        .flatMap((citation) => [citation.source, citation.title])
+        .filter(Boolean)
+        .map(normalizeSourceKey);
+      const citationKeySet = new Set(citationKeys);
+      const matchedIds = new Set(
+        sources
+          .filter((source) => {
+            const sourceKeys = getSourceKeys(source);
+            return [...sourceKeys].some((sourceKey) => {
+              if (citationKeySet.has(sourceKey)) return true;
+              return [...citationKeySet].some(
+                (citationKey) =>
+                  citationKey.includes(sourceKey) ||
+                  sourceKey.includes(citationKey)
+              );
+            });
+          })
+          .map((source) => source.id)
+      );
+
+      setRelatedSourceIds([...matchedIds]);
+      setSourcesOpen(true);
+    },
+    [groundingSentences, setRelatedSourceIds, setSourcesOpen, sources]
+  );
 
   const rehypePlugins = useMemo(() => {
     let rehypePlugins: PluggableList = [];
@@ -113,6 +418,7 @@ const Markdown = ({
   const remarkPlugins = useMemo(() => {
     let remarkPlugins: PluggableList = [
       cursorPlugin,
+      groundingUnderlinePlugin,
       remarkGfm as any,
       remarkDirective as any,
       MarkdownAlert
@@ -143,16 +449,23 @@ const Markdown = ({
           return <CodeSnippet {...props} />;
         },
         a({ children, ...props }) {
-          const name = children as string;
+          const name = getText(children);
           const element = refElements?.find((e) => e.name === name);
           if (element) {
             return <ElementRef element={element} />;
           } else {
+            const source = sources.find((item) => item.link === props.href);
             return (
               <a
                 {...props}
+                href={source?.link ?? props.href}
                 className="text-primary hover:underline"
                 target="_blank"
+                onClick={() => {
+                  if (!source) return;
+                  setSourcesOpen(true);
+                }}
+                rel="noreferrer"
               >
                 {children}
               </a>
@@ -164,9 +477,16 @@ const Markdown = ({
           const src = image.src.startsWith('/public')
             ? apiClient.buildEndpoint(image.src)
             : image.src;
-          
-          const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.ogv', '.m4v'];
-          const isVideo = videoExtensions.some(ext => 
+
+          const videoExtensions = [
+            '.mp4',
+            '.webm',
+            '.mov',
+            '.avi',
+            '.ogv',
+            '.m4v'
+          ];
+          const isVideo = videoExtensions.some((ext) =>
             src.toLowerCase().split(/[?#]/)[0].endsWith(ext)
           );
 
@@ -302,6 +622,23 @@ const Markdown = ({
           return <TableBody {...(props as any)}>{children}</TableBody>;
         },
         // @ts-expect-error custom plugin
+        groundingUnderline({ children, ...props }: any) {
+          return (
+            <span
+              {...omit(props, ['node'])}
+              className={cn('grounding-underline', props.className)}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const text = getText(children);
+                if (!text) return;
+                handleUnderlineClick(text);
+              }}
+            >
+              {children}
+            </span>
+          );
+        },
         blinkingCursor: () => <BlinkingCursor whitespace />,
         alert: ({
           type,

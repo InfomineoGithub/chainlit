@@ -18,6 +18,7 @@ interface Props {
   autoScrollRef?: MutableRefObject<boolean>;
   children: React.ReactNode;
   className?: string;
+  scrollButtonClassName?: string;
 }
 
 export default function ScrollContainer({
@@ -25,7 +26,8 @@ export default function ScrollContainer({
   autoScrollUserMessage,
   autoScrollAssistantMessage,
   children,
-  className
+  className,
+  scrollButtonClassName
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
@@ -207,7 +209,12 @@ export default function ScrollContainer({
       </div>
 
       {showScrollButton ? (
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+        <div
+          className={cn(
+            'absolute bottom-4 left-0 right-0 flex justify-center',
+            scrollButtonClassName
+          )}
+        >
           <Button
             size="icon"
             variant="outline"

@@ -5,6 +5,7 @@ import { sideViewState, useAuth, useConfig } from '@chainlit/react-client';
 
 import ElementSideView from '@/components/ElementSideView';
 import LeftSidebar from '@/components/LeftSidebar';
+import SourcesPanel from '@/components/SourcesPanel';
 import { TaskList } from '@/components/Tasklist';
 import { Header } from '@/components/header';
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -40,8 +41,9 @@ const Page = ({ children }: Props) => {
           minSize={40}
           defaultSize={60}
         >
-          <div className="flex flex-row flex-grow overflow-auto">
+          <div className="relative flex flex-row flex-grow overflow-hidden">
             {children}
+            <SourcesPanel />
           </div>
         </ResizablePanel>
         {sideView ? <ElementSideView /> : <TaskList isMobile={false} />}

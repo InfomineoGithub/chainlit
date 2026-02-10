@@ -178,3 +178,16 @@ code {
     background-color: transparent;
   }
 }
+
+.grounding-underline {
+  text-decoration-line: underline;
+  text-decoration-color: hsl(var(--primary) / 0.3);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.grounding-underline:hover {
+  text-decoration-color: hsl(var(--primary) / 0.6);
+}
